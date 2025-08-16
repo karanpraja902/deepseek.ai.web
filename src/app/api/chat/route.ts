@@ -11,6 +11,21 @@ export async function POST(req: Request) {
     model: google('models/gemini-2.5-flash'), // or 'gemini-1.5-pro' for newer models
     messages: convertToModelMessages(messages),
   });
+  
 
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    messageMetadata: ({ part }) => {
+      if (part.type === 'start') {
+        return {
+          createdAt: Date.now()
+        };
+      }
+  
+      if (part.type === 'finish') {
+        return {
+          totalTokens: part.totalUsage.totalTokens,
+        };
+      }
+    },
+  });
 }
