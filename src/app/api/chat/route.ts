@@ -16,119 +16,76 @@ export async function POST(req: Request) {
   console.log('messagesToBeAdded:',messages);
   console.log(messages.length)
   const chatId = body.chatId ?? messages[messages.length-1]?.metadata?.chatId;
-  console.log('chatId',chatId)
-
-  
-  // Extract chatId from the metadata of the first message
-  // const chatId = messages[0]?.metadata?.chatId || undefined;
-  
+  console.log('chatId',chatId)  
   console.log('messagesToBeAdded:',messages);
   console.log('chatId',chatId)
-  // Save the user's latest message to the database
-  if (messages.length > 0 && chatId) {
-    const lastMessage = messages[messages.length - 1];
-    console.log('lastMessage:',lastMessage)
-    if (lastMessage.role === 'user') {
-      try {
-        // Extract content from parts array
-        let last=lastMessage?.parts?.length-1||0
-
-        const content = lastMessage.parts?.[last]?.type === 'text' ? lastMessage.parts[last].text : '';
-        console.log("content:",content)
-        console.log("lastMessageFiles",lastMessage)
-        console.log("filteredFiles:",lastMessage.parts.filter(part=>part.type==='file'))
-        
-        await ChatService.addMessage(chatId, {
-          role: 'user',
-          content: content,
-          files: lastMessage.parts?.[0]?.type==="file"?
-          lastMessage.parts.filter(part=>part.type==='file').map(file => ({
-            filename: file?.filename || 'file',
-            url: file?.url.substring(0,100) || '',
-            mediaType: file?.mediaType || 'application/octet-stream'
-          })
-        ) : undefined
-        });
-      } catch (error) {
-        console.error('Failed to save user message to database:', error);
+  
+    if (messages.length > 0 && chatId) {
+      const lastMessage = messages[messages.length - 1] as any;
+      console.log("lastMessage:",lastMessage)
+      console.log()
+      if (lastMessage.role === 'user') {
+        try {
+          const textPart =
+            lastMessage.parts?.find((p: any) => p?.type === 'text') ?? null;
+          const existingFileParts: any[] =
+            lastMessage.parts?.filter((p: any) => p?.type === 'file') ?? [];
+            console.log("textPart:",textPart)
+  
+          // Files uploaded on the client are sent in metadata.uploadedFiles
+          const uploadedMeta: Array<{ url: string; mediaType: string; filename: string }> =
+            lastMessage.metadata?.uploadedFiles ?? [];
+            console.log("uploadedMeta",uploadedMeta)
+  
+          // Merge any existing file parts with uploaded meta files
+          const mergedFiles = [
+            ...existingFileParts.map((p: any) => ({
+              filename: p.filename || 'file',
+              url: p.url || '',
+              mediaType: p.mediaType || 'application/octet-stream',
+            })),
+            ...uploadedMeta.map((m: any) => ({
+              filename: m.filename || 'file',
+              url: m.url || '',
+              mediaType: m.mediaType || 'application/octet-stream',
+            })),
+          ].filter(f => !!f.url);
+  console.log("mergedFiles:",mergedFiles)
+          // Ensure last message parts include file parts for the model
+          if (uploadedMeta.length > 0) {
+            const appendedParts = [
+              ...(lastMessage.parts ?? []),
+              ...uploadedMeta.map(m => ({
+                type: 'file',
+                url: m.url,
+                mediaType: m.mediaType,
+                filename: m.filename,
+              })),
+            ];
+           
+            (messages as any)[messages.length - 1] = {
+              ...lastMessage,
+              parts: appendedParts,
+            };
+            console.log("appendedPars:",appendedParts)
+          }
+  
+          const content =
+            (textPart?.text || '').trim() || (mergedFiles.length ? '[attachment]' : '');
+            console.log("content:",content)
+  
+          await ChatService.addMessage(chatId, {
+            role: 'user',
+            content,
+            files: mergedFiles.length ? mergedFiles : undefined,
+          });
+        } catch (error) {
+          console.error('Failed to save user message to database:', error);
+        }
       }
     }
-  }
 
-  //   // Enhanced system prompt for structured responses
-  //   const structuredSystemPrompt = `
-  //   Respond in a clear, structured format based on the query type:
-    
-  //   - For factual questions: Provide a concise answer followed by key points
-  //   - For explanations: Use hierarchical bullet points (main points → details)
-  //   - For comparisons: Present in a table or parallel bullet points
-  //   - For instructions: Numbered steps with clear actions
-  //   - For creative requests: Structured narrative with sections
-    
-  //   Always:
-  //   1. Start directly with the answer/content
-  //   2. Use appropriate markdown formatting (headers, lists, tables)
-  //   3. Keep technical explanations accessible
-  //   4. Limit to 5-7 key points for brevity
-  //   5. Include examples when helpful
-  // `;
-
-  // const result = await streamText({
-  //   model: google('models/gemini-2.5-flash'),
-  //   system: structuredSystemPrompt,
-  //   temperature: 0.3, // Slightly higher for creativity in structuring
-  //   maxOutputTokens: 500, // Increased for structured content
-  //   messages: convertToModelMessages(messages.slice(-8)),
-  // });
-  // const result = await streamText({
-  //   model: google('models/gemini-2.5-flash'), // or 'gemini-1.5-pro' for newer models
-  //   messages: convertToModelMessages(messages),
-  // });
-  // const result = await streamText({
-  //   model: google('models/gemini-2.5-flash'),
-  //   system: 'Be concise. Answer in at most 5 short bullet points or sentences. No preambles, no repetition. Use minimal markdown.',
-  //   temperature: 0.2,
-  //   maxOutputTokens: 300,
-  //   messages: convertToModelMessages(messages.slice(-8)),
-  // });
-  
-  // Create a custom stream to save the assistant's response
-//   let assistantResponse = '';
-  
-//   const customStream = result.toUIMessageStreamResponse({
-//     messageMetadata: ({ part }) => {
-//       if (part.type === 'start') {
-//         return {
-//           createdAt: Date.now()
-//         };
-//       }
-  
-//       if (part.type === 'finish') {
-//         // Save the complete assistant response to the database
-//         if (chatId && assistantResponse.trim()) {
-//           ChatService.addMessage(chatId, {
-//             role: 'assistant',
-//             content: assistantResponse,
-//           }).catch(error => {
-//             console.error('Failed to save assistant message to database:', error);
-//           });
-//         }
-        
-//         return {
-//           totalTokens: part.totalUsage.totalTokens,
-//         };
-//       }
-      
-//       // Accumulate the assistant's response
-//       if (part.type === 'text-delta') {
-//         assistantResponse += part.textDelta;
-//       }
-//     },
-//   });
-
-//   return customStream;
-// }
-// Enhanced system prompt for DeepSeek-style responses
+  // .substring(0,100)
 const systemPrompt = `
 Respond to all prompts with clear, structured formatting:
 
@@ -159,11 +116,27 @@ const result = await streamText({
 model: google('models/gemini-2.5-flash'),
 system: systemPrompt,
 temperature: 0.25, // Balanced for structure + creativity
-maxOutputTokens: 600, // Allows for structured formatting
-messages: convertToModelMessages(messages.slice(-6)), // Slightly smaller context
+maxOutputTokens: 3000, // Allows for structured formatting
+messages: convertToModelMessages(messages.slice(-8)), // Slightly smaller context
 });
 
 let assistantResponse = '';
+// const formattedResponse = formatResponseStructure(assistantResponse);
+// assistantResponse = formattedResponse;
+function formatResponseStructure(rawText: string): string {
+  // Ensure consistent line breaks
+  let formatted = rawText.replace(/\n{3,}/g, '\n\n');
+  
+  // Standardize headers
+  formatted = formatted.replace(/^(#+\s*.+)/gm, (match) => {
+    return `\n${match}\n`;
+  });
+  
+  // Ensure bullet point consistency
+  formatted = formatted.replace(/^(\s*[-*+]\s+)/gm, '- ');
+  
+  return formatted.trim();
+}
 
 const customStream = result.toUIMessageStreamResponse({
 messageMetadata: ({ part }) => {
@@ -174,6 +147,8 @@ messageMetadata: ({ part }) => {
   }
 
   if (part.type === 'finish') {
+    // format the final aggregated text before saving
+    assistantResponse = formatResponseStructure(assistantResponse);
     if (chatId && assistantResponse.trim()) {
       ChatService.addMessage(chatId, {
         role: 'assistant',
@@ -182,9 +157,7 @@ messageMetadata: ({ part }) => {
         console.error('Failed to save assistant message to database:', error);
       });
     }
-    return {
-      totalTokens: part.totalUsage.totalTokens,
-    };
+    return { totalTokens: part.totalUsage.totalTokens };
   }
   
   if (part.type === 'text-delta') {
@@ -195,3 +168,35 @@ messageMetadata: ({ part }) => {
 
 return customStream;
 }
+
+// Save the user's latest message to the database
+  // if (messages.length > 0 && chatId) {
+  //   const lastMessage = messages[messages.length - 1];
+  //   console.log('lastMessage:',lastMessage)
+  //   if (lastMessage.role === 'user') {
+  //     try {
+  //       // Extract content from parts array
+  //       let last=lastMessage?.parts?.length-1||0
+
+  //       const content = lastMessage.parts?.[last]?.type === 'text' ? lastMessage.parts[last].text : '';
+  //       console.log("content:",content)
+  //       console.log("lastMessageFiles",lastMessage)
+  //       console.log("filteredFiles:",lastMessage.parts.filter(part=>part.type==='file'))
+        
+  //       await ChatService.addMessage(chatId, {
+  //         role: 'user',
+  //         content: content,
+  //         files: lastMessage.parts?.[0]?.type==="file"?
+  //         lastMessage.parts.filter(part=>part.type==='file').map(file => ({
+  //           filename: file?.filename || 'file',
+  //           url: file?.url || '',
+  //           mediaType: file?.mediaType || 'application/octet-stream'
+  //         })
+  //       ) : undefined
+  //       });
+  //     } catch (error) {
+  //       console.error('Failed to save user message to database:', error);
+  //     }
+  //   }
+  // }
+    // Save the user's latest message to the database

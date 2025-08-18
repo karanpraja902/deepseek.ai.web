@@ -1,6 +1,8 @@
 'use client';
 import { useRef, useEffect } from 'react';
 import { Loader2, RefreshCw, Copy, Check, Edit } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ChatContainerProps {
   messages: any[];
@@ -171,22 +173,30 @@ export default function ChatContainer({
                     </div>
                   ) : (
                     <div className="flex items-center leading-relaxed space-y-2 gap-2">
+               
                       {message.parts.map((part: any, index: number) => {
-                        if (part.type === 'text') {
-                          return <div className="gap-2" key={`${message.id}-part-${index}`}>{part.text}</div>;
-                        } else if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
-                          return (
-                            <div key={`${message.id}-part-${index}`} className="mt-2">
-                              <img 
-                                src={part.url} 
-                                alt={part.filename || 'Uploaded image'} 
-                                className="max-w-full h-auto rounded-lg border border-gray-200 max-h-80 object-contain"
-                              />
-                            </div>
-                          );
-                        }
-                        return null;
-                      })}
+	if (part.type === 'text') {
+		return (
+			<div key={`${message.id}-part-${index}`} className="w-full whitespace-pre-wrap leading-relaxed markdown">
+				<ReactMarkdown remarkPlugins={[remarkGfm]}>
+					{part.text}
+				</ReactMarkdown>
+			</div>
+		);
+  } else if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
+    return (
+      <div key={`${message.id}-part-${index}`} className="mt-2">
+        <img
+          src={part.url}
+          alt={part.filename || 'Uploaded image'}
+          className="max-w-full h-auto rounded-lg border border-gray-200 max-h-80 object-contain cursor-zoom-in"
+          onClick={() => window.open(part.url, '_blank', 'noopener,noreferrer')}
+        />
+      </div>
+    );
+	}
+	return null;
+})}
                     </div>
                   )}
                 </div>

@@ -5,7 +5,8 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import ChatContainer from '../../../../components/chat/ChatContainer';
 import ChatInput from '../../../../components/chat/ChatInput';
-import { ChatApiService } from '../../../../services/api'; // Import from services
+import { ChatApiService } from '../../../../services/api';
+import { uploadFilesClient } from '../../../../lib/client-cloudinary';
 
 interface ChatPageClientProps {
   chatId: string;
@@ -37,7 +38,7 @@ export default function ChatPage() {
   });
   
   const [input, setInput] = useState('');
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setUploadedFiles] = useState<File[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
@@ -57,19 +58,28 @@ export default function ChatPage() {
         const existingChat = await ChatApiService.getChat(chatId);
         
         console.log('existingChat:',existingChat);
+       
         if (existingChat && existingChat.messages.length > 0) {
-          // Convert database messages to UI format with proper parts structure
-          const uiMessages = existingChat.messages.map(msg => ({
-            id: msg.id,
-            role: msg.role,
-            parts: [{ type: 'text', text: msg.content }],
-            createdAt: msg.timestamp,
-            files: msg.files?.map(file => ({
-              name: file.filename,
-              url: file.url,
-              type: file.mediaType
-            }))
-          }));
+          const uiMessages = existingChat.messages.map((msg: any) => {
+            const fileParts =
+              (msg.files ?? []).map((file: any) => ({
+                type: 'file',
+                mediaType: file.mediaType,
+                url: file.url,
+                filename: file.filename,
+              }));
+            const parts = [
+              ...(msg.content ? [{ type: 'text', text: msg.content }] : []),
+              ...fileParts,
+            ];
+            return {
+              id: msg.id,
+              role: msg.role,
+              parts,
+              createdAt: msg.timestamp,
+            };
+          });
+          console.log("uiMessages:",uiMessages)
           setMessages(uiMessages);
         }
       } catch (error) {
@@ -113,20 +123,22 @@ export default function ChatPage() {
     setEditText('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim() || files.length > 0) {
-      // Convert File[] to FileList using DataTransfer
-      const dataTransfer = new DataTransfer();
-      files.forEach(file => dataTransfer.items.add(file));
-      
+      // 1) Upload to Cloudinary first (unsigned)
+      // const uploaded = await uploadFilesClient(files)|| [];
+      // console.log("uploaded:",uploaded)
+
+      // 2) Send message with metadata referencing Cloudinary URLs
       sendMessage({
         text: input,
-        files: files.length > 0 ? dataTransfer.files : undefined,
-        metadata: { chatId: chatId } // Use metadata to pass chatId
+        metadata: { chatId, uploadedFiles: uploaded },
       });
+      console.log("message:",messages)
+
       setInput('');
-      setFiles([]);
+      setUploadedFiles([]);
     }
   };
 
@@ -181,7 +193,7 @@ export default function ChatPage() {
             input={input}
             setInput={setInput}
             files={files}
-            setFiles={setFiles}
+            setUploadedFiles={setUploadedFiles}
             status={status}
             onSubmit={handleSubmit}
             onStop={stop}

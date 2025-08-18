@@ -1,12 +1,15 @@
 'use client';
-import { useRef } from 'react';
-import { Paperclip, X, StopCircle } from 'lucide-react';
+import { uploadFilesClient, deleteFileFromCloudinary, UploadedClientFile } from '@/lib/client-cloudinary';
+import { useRef, useState } from 'react';
+import { Paperclip, X, StopCircle, Loader2 } from 'lucide-react';
+import { Spinner } from '@radix-ui/themes';
+import { error } from 'console';
 
 interface ChatInputProps {
   input: string;
   setInput: (input: string) => void;
   files: File[];
-  setFiles: (files: File[]) => void;
+  setUploadedFiles: (files: File[]) => void;
   status: string;
   onSubmit: (e: React.FormEvent) => void;
   onStop: () => void;
@@ -16,33 +19,96 @@ export default function ChatInput({
   input,
   setInput,
   files,
-  setFiles,
+  setUploadedFiles,
   status,
   onSubmit,
   onStop
 }: ChatInputProps) {
+  const [preFile,setPreFile]=useState<File[]>([]);
+  const [isUploading,setIsUploading]=useState<Boolean>(false)
+  const [isDeleting,setIsDeleting]=useState<Boolean>(false)
+  
+  const [Error,setError]=useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFileMetadata, setUploadedFileMetadata] = useState<UploadedClientFile[]>([]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+
     if (e.target.files) {
-      setFiles(Array.from(e.target.files));
-    }
-  };
 
-  const removeFile = (index: number) => {
+      setPreFile(Array.from(e.target.files))
+      try{
+      setIsUploading(true)
+      const upload = await uploadFilesClient(Array.from(e.target.files))|| [];
+      if(upload){
+        setUploadedFileMetadata(upload)
+      setUploadedFiles(Array.from(e.target.files));
+      console.log("uploaded:",upload)
+        setIsUploading(false)
+        return;
+      }
+    }catch(error){
+setError("Failed to upload image")
+return;
+      }
+      console.log("ChatInputFiles:",e.target.files)
+      return;
+    }
+
+  };
+  if(preFile?.[0]){
+  console.log("prefile:",preFile?.[0].name)
+  }
+
+
+
+  const removeFile = async (index: number) => {
+    // Get the metadata for the file being removed
+    console.log("remove file")
+    const fileMetadata = uploadedFileMetadata[index];
+    console.log("fileMetadata:",fileMetadata)
+    
+    // If we have a publicId, delete from Cloudinary
+    if (fileMetadata?.publicId) {
+      try {
+        setIsDeleting(true)
+        const deleted = await deleteFileFromCloudinary(fileMetadata.publicId);
+        if (deleted) {
+          console.log(`Successfully deleted file with publicId: ${fileMetadata.publicId}`);
+          setIsDeleting(false)
+        } else {
+          console.error(`Failed to delete file with publicId: ${fileMetadata.publicId}`);
+          
+          setIsDeleting(false)
+        }
+      } catch (error) {
+        console.error('Error deleting file from Cloudinary:', error);
+          setIsDeleting(false)
+      }
+    }
+
+    // Remove from local state
     const newFiles = [...files];
     newFiles.splice(index, 1);
-    setFiles(newFiles);
+    const newMetadata = [...uploadedFileMetadata];
+    newMetadata.splice(index, 1);
+    
+    setPreFile([]);
+    setUploadedFileMetadata(newMetadata);
+    console.log("newfiles:", newFiles);
+    setUploadedFiles(newFiles);
+    console.log("newFiles:", newFiles);
   };
+
 
   return (
     <div className={`sticky bottom-0 bg-gradient-to-b from-transparent to-white/50 pb-4`}>
       <form onSubmit={onSubmit}>
         {/* File preview section */}
-        {files.length > 0 && (
+        {preFile.length > 0 && (
           <div className="mb-2 p-2 bg-white/50 rounded-lg border border-gray-200">
             <div className="flex flex-wrap gap-2">
-              {files.map((file, index) => (
+              {preFile.map((file, index) => (
                 <div key={index} className="relative group">
                   <div className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200">
                     <div className="text-sm text-gray-600 truncate max-w-[120px]">
@@ -51,14 +117,37 @@ export default function ChatInput({
                     <div className="text-xs text-gray-400">
                       {(file.size / (1024 * 1024)).toFixed(2)}MB
                     </div>
-                    <button
+                    {(!isUploading&&!Error&&!isDeleting)?(
+                      <button
                       type="button"
                       onClick={() => removeFile(index)}
                       className="text-red-500 hover:text-red-700"
                     >
                       <X className="w-4 h-4" />
-                    </button>
+                      
+                    </button>):(
+<div className="relative">
+  {Error?<p className='text-red-500'>!</p>
+              :<Loader2 className="w-5 h-5 animate-spin text-blue-600" />}
+            </div>
+                   
+                    )
+                    }
+                    
                   </div>
+                  {Error&&(<div className='flex items-center bg-white rounded border '>
+                    <p className='ml-2 text-red-300'>Error</p>
+                    </div>)}
+                    {
+                      isUploading&&(<div className='flex items-center bg-white rounded border '>
+                    <p className='ml-2 text-gray-500 '>Uploading Image</p>
+                    </div>)
+                    }
+                    {
+                      isDeleting&&(<div className='flex items-center bg-white rounded border '>
+                    <p className='ml-2 text-gray-500 '>Removing Image</p>
+                    </div>)
+                    }
                 </div>
               ))}
             </div>
