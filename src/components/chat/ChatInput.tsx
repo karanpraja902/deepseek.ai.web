@@ -2,17 +2,17 @@
 import { uploadFilesClient, deleteFileFromCloudinary, UploadedClientFile } from '@/lib/client-cloudinary';
 import { useRef, useState } from 'react';
 import { Paperclip, X, StopCircle, Loader2 } from 'lucide-react';
-import { Spinner } from '@radix-ui/themes';
-import { error } from 'console';
 
 interface ChatInputProps {
   input: string;
   setInput: (input: string) => void;
-  files: File[];
-  setUploadedFiles: (files: File[]) => void;
+  files: UploadedClientFile[];
+  setUploadedFiles: (files: UploadedClientFile[]) => void;
   status: string;
-  onSubmit: (e: React.FormEvent) => void;
   onStop: () => void;
+  sendMessage: (message: { text: string; metadata: { chatId: string; files: UploadedClientFile[] } }) => void;
+  chatId: string;
+  messages: any[];
 }
 
 export default function ChatInput({
@@ -21,8 +21,10 @@ export default function ChatInput({
   files,
   setUploadedFiles,
   status,
-  onSubmit,
-  onStop
+  onStop,
+  sendMessage,
+  chatId,
+  messages
 }: ChatInputProps) {
   const [preFile,setPreFile]=useState<File[]>([]);
   const [isUploading,setIsUploading]=useState<Boolean>(false)
@@ -33,17 +35,16 @@ export default function ChatInput({
   const [uploadedFileMetadata, setUploadedFileMetadata] = useState<UploadedClientFile[]>([]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-
+    // console.log("local file:",Array.from(e.target.files))
     if (e.target.files) {
-
       setPreFile(Array.from(e.target.files))
       try{
       setIsUploading(true)
       const upload = await uploadFilesClient(Array.from(e.target.files))|| [];
       if(upload){
         setUploadedFileMetadata(upload)
-      setUploadedFiles(Array.from(e.target.files));
-      console.log("uploaded:",upload)
+        setUploadedFiles(upload);
+        console.log("uploaded:",upload)
         setIsUploading(false)
         return;
       }
@@ -100,10 +101,26 @@ return;
     console.log("newFiles:", newFiles);
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim() || files.length > 0) {
+      console.log("handleSubmitFiles:",files)
+      sendMessage({
+        text: input,
+        metadata: { chatId, files },
+      });
+      console.log("message:",messages)
+
+      setInput('');
+      setPreFile([]);
+      setUploadedFiles([]);
+    }
+  };
+
 
   return (
     <div className={`sticky bottom-0 bg-gradient-to-b from-transparent to-white/50 pb-4`}>
-      <form onSubmit={onSubmit}>
+      <form onSubmit={handleSubmit}>
         {/* File preview section */}
         {preFile.length > 0 && (
           <div className="mb-2 p-2 bg-white/50 rounded-lg border border-gray-200">

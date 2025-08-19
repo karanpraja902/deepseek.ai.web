@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Loader2, RefreshCw, Copy, Check, Edit } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -9,14 +9,7 @@ interface ChatContainerProps {
   status: string;
   error: any;
   onRegenerate: () => void;
-  onCopy: (text: string, messageId: string) => void;
-  onEdit: (messageId: string, currentText: string) => void;
-  onSaveEdit: (messageId: string) => void;
-  onCancelEdit: () => void;
-  editingId: string | null;
-  editText: string;
-  setEditText: (text: string) => void;
-  copiedId: string | null;
+  setMessages: (messages: any[]) => void;
 }
 
 export default function ChatContainer({
@@ -24,16 +17,41 @@ export default function ChatContainer({
   status,
   error,
   onRegenerate,
-  onCopy,
-  onEdit,
-  onSaveEdit,
-  onCancelEdit,
-  editingId,
-  editText,
-  setEditText,
-  copiedId
+  setMessages,
 }: ChatContainerProps) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState<string>('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  
+  // console.log("chatContainerMessage:",messages)
+  useEffect(() => {
+    window.scrollTo(0, document.body.scrollHeight);
+  }, [messages, status]);
+
+  const handleEdit = (messageId: string, currentText: string) => {
+    setEditingId(messageId);
+    setEditText(currentText);
+  };
+
+  const handleSaveEdit = (messageId: string) => {
+    const updated = messages.map(msg =>
+      msg.id === messageId
+        ? { ...msg, parts: [{ type: 'text', text: editText }] }
+        : msg
+    );
+    setMessages(updated);
+    onRegenerate();
+    setEditingId(null);
+    setEditText('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditText('');
+  };
 
   const getMessageText = (message: any) => {
     return message.parts
@@ -42,9 +60,15 @@ export default function ChatContainer({
       .join('\n');
   };
 
-  useEffect(() => {
-    window.scrollTo(0, document.body.scrollHeight);
-  }, [messages, status]);
+  const handleCopy = async (text: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(messageId);
+      setTimeout(() => setCopiedId(null), 6000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
 
   return (
     <div 
@@ -83,7 +107,7 @@ export default function ChatContainer({
       ) : (
         <div className="space-y-4">
           {messages.map(message => (
-            <div key={`${message.id}-part-${Math.random()}`} className={`flex ${
+            <div key={`${Math.random()}`} className={`flex ${
               message.role === 'user' ? 'justify-end' : 'justify-start'
             }`}>
               <div className={`flex flex-row max-w-[80%] p-8 rounded-2xl shadow-sm relative group ${
@@ -107,7 +131,7 @@ export default function ChatContainer({
                   )}
                   {message.role === 'user' && (status !== "streaming") && editingId !== message.id && (
                     <button
-                      onClick={() => onEdit(message.id, getMessageText(message))}
+                      onClick={() => handleEdit(message.id, getMessageText(message))}
                       className="p-1.5 bg-gray-50 hover:bg-yellow-50 text-black-500 relative group/tooltip"
                       aria-label="Edit message"
                       title="Edit Message"
@@ -120,7 +144,7 @@ export default function ChatContainer({
                   )}
                   {(status !== "streaming") && (
                     <button
-                      onClick={() => onCopy(getMessageText(message), message.id)}
+                      onClick={() => handleCopy(getMessageText(message), message.id)}
                       className="p-1.5 bg-gray-50 hover:bg-green-50 text-black-500 relative group/tooltip"
                       aria-label="Copy message"
                       title="Copy Message"
@@ -137,7 +161,32 @@ export default function ChatContainer({
                   )}
                 </div>
                 
-                <div className='flex gap-2'>
+                <div className=' flex flex-col gap-2'>
+                 <div>
+{message.parts.map((part: any, index: number) => {
+if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
+    return (
+
+     <div key={part.index} className="relative group">
+                  <div className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200">
+                    <div className="text-sm text-gray-600 truncate max-w-[120px]">
+                      {part.filename}
+                    </div>
+                    {/* <div className="text-xs text-gray-400">
+                      {(part.size / (1024 * 1024)).toFixed(2)}MB
+                    </div> */}
+                   
+                  </div>
+                 
+                  
+                </div>
+    );
+	}
+}
+)
+}
+                  </div> 
+                  <div className='flex flex-row'>
                   <div className="flex items-top gap-2 mt-1">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
                       message.role === 'user' 
@@ -155,16 +204,16 @@ export default function ChatContainer({
                         onChange={(e) => setEditText(e.target.value)}
                         className="w-full p-2 bg-white/90 text-gray-800 rounded-lg resize-none"
                         rows={3}
-                      />
+                     />
                       <div className="flex gap-2">
                         <button
-                          onClick={() => onSaveEdit(message.id)}
+                          onClick={() => handleSaveEdit(message.id)}
                           className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
                         >
                           Save
                         </button>
                         <button
-                          onClick={onCancelEdit}
+                          onClick={handleCancelEdit}
                           className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 transition-colors"
                         >
                           Cancel
@@ -172,7 +221,7 @@ export default function ChatContainer({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center leading-relaxed space-y-2 gap-2">
+                    <div className="flex flex-col items-center leading-relaxed space-y-2 gap-2">
                
                       {message.parts.map((part: any, index: number) => {
 	if (part.type === 'text') {
@@ -183,22 +232,14 @@ export default function ChatContainer({
 				</ReactMarkdown>
 			</div>
 		);
-  } else if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
-    return (
-      <div key={`${message.id}-part-${index}`} className="mt-2">
-        <img
-          src={part.url}
-          alt={part.filename || 'Uploaded image'}
-          className="max-w-full h-auto rounded-lg border border-gray-200 max-h-80 object-contain cursor-zoom-in"
-          onClick={() => window.open(part.url, '_blank', 'noopener,noreferrer')}
-        />
-      </div>
-    );
-	}
-	return null;
-})}
+  }
+
+}
+)
+}
                     </div>
                   )}
+                  </div>
                 </div>
               </div>
             </div>

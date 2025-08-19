@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import ChatContainer from '../../../../components/chat/ChatContainer';
 import ChatInput from '../../../../components/chat/ChatInput';
 import { ChatApiService } from '../../../../services/api';
+import type { UploadedClientFile } from '../../../../lib/client-cloudinary';
 import { uploadFilesClient } from '../../../../lib/client-cloudinary';
 
 interface ChatPageClientProps {
@@ -38,16 +39,10 @@ export default function ChatPage() {
   });
   
   const [input, setInput] = useState('');
-  const [files, setUploadedFiles] = useState<File[]>([]);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editText, setEditText] = useState('');
+  const [files, setUploadedFiles] = useState<UploadedClientFile[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
-  // const pathname=usePathname()
-  // const [chatId,setChatId]=useState(pathname.split('/').pop())
 
-
-  // Load existing messages from database when component mounts
   useEffect(() => {
     const loadExistingMessages = async () => {
       try {
@@ -73,7 +68,7 @@ export default function ChatPage() {
               ...fileParts,
             ];
             return {
-              id: msg.id,
+              id: msg._id,
               role: msg.role,
               parts,
               createdAt: msg.timestamp,
@@ -92,55 +87,9 @@ export default function ChatPage() {
     loadExistingMessages();
   }, [chatId, setMessages]);
 
-  const handleCopy = async (text: string, messageId: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedId(messageId);
-      setTimeout(() => setCopiedId(null), 6000);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-    }
-  };
+  
 
-  const handleEdit = (messageId: string, currentText: string) => {
-    setEditingId(messageId);
-    setEditText(currentText);
-  };
-
-  const handleSaveEdit = (messageId: string) => {
-    setMessages(messages.map(msg => 
-      msg.id === messageId 
-        ? { ...msg, parts: [{ type: 'text', text: editText }] }
-        : msg
-    ));
-    regenerate()
-    setEditingId(null);
-    setEditText('');
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditText('');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (input.trim() || files.length > 0) {
-      // 1) Upload to Cloudinary first (unsigned)
-      // const uploaded = await uploadFilesClient(files)|| [];
-      // console.log("uploaded:",uploaded)
-
-      // 2) Send message with metadata referencing Cloudinary URLs
-      sendMessage({
-        text: input,
-        metadata: { chatId, uploadedFiles: uploaded },
-      });
-      console.log("message:",messages)
-
-      setInput('');
-      setUploadedFiles([]);
-    }
-  };
+  
 
   if (isLoading) {
     return (
@@ -177,14 +126,7 @@ export default function ChatPage() {
           status={status}
           error={error}
           onRegenerate={regenerate}
-          onCopy={handleCopy}
-          onEdit={handleEdit}
-          onSaveEdit={handleSaveEdit}
-          onCancelEdit={handleCancelEdit}
-          editingId={editingId}
-          editText={editText}
-          setEditText={setEditText}
-          copiedId={copiedId}
+          setMessages={setMessages}
         />
 
         {/* Input Form - Always fixed at bottom */}
@@ -195,8 +137,10 @@ export default function ChatPage() {
             files={files}
             setUploadedFiles={setUploadedFiles}
             status={status}
-            onSubmit={handleSubmit}
             onStop={stop}
+            sendMessage={sendMessage}
+            chatId={chatId}
+            messages={messages}
           />
         )}
       </div>

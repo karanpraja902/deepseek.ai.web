@@ -1,6 +1,7 @@
 import { google } from '@ai-sdk/google';
 import { streamText, UIMessage, convertToModelMessages } from 'ai';
 import { ChatService } from '../../../lib/chat-service';
+import { text } from 'stream/consumers';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -23,18 +24,18 @@ export async function POST(req: Request) {
     if (messages.length > 0 && chatId) {
       const lastMessage = messages[messages.length - 1] as any;
       console.log("lastMessage:",lastMessage)
-      console.log()
       if (lastMessage.role === 'user') {
         try {
           const textPart =
             lastMessage.parts?.find((p: any) => p?.type === 'text') ?? null;
+            console.log("textPart:",textPart)
           const existingFileParts: any[] =
             lastMessage.parts?.filter((p: any) => p?.type === 'file') ?? [];
-            console.log("textPart:",textPart)
+            console.log("filePart:",existingFileParts)
   
           // Files uploaded on the client are sent in metadata.uploadedFiles
           const uploadedMeta: Array<{ url: string; mediaType: string; filename: string }> =
-            lastMessage.metadata?.uploadedFiles ?? [];
+            lastMessage.metadata?.files ?? [];
             console.log("uploadedMeta",uploadedMeta)
   
           // Merge any existing file parts with uploaded meta files
@@ -168,35 +169,3 @@ messageMetadata: ({ part }) => {
 
 return customStream;
 }
-
-// Save the user's latest message to the database
-  // if (messages.length > 0 && chatId) {
-  //   const lastMessage = messages[messages.length - 1];
-  //   console.log('lastMessage:',lastMessage)
-  //   if (lastMessage.role === 'user') {
-  //     try {
-  //       // Extract content from parts array
-  //       let last=lastMessage?.parts?.length-1||0
-
-  //       const content = lastMessage.parts?.[last]?.type === 'text' ? lastMessage.parts[last].text : '';
-  //       console.log("content:",content)
-  //       console.log("lastMessageFiles",lastMessage)
-  //       console.log("filteredFiles:",lastMessage.parts.filter(part=>part.type==='file'))
-        
-  //       await ChatService.addMessage(chatId, {
-  //         role: 'user',
-  //         content: content,
-  //         files: lastMessage.parts?.[0]?.type==="file"?
-  //         lastMessage.parts.filter(part=>part.type==='file').map(file => ({
-  //           filename: file?.filename || 'file',
-  //           url: file?.url || '',
-  //           mediaType: file?.mediaType || 'application/octet-stream'
-  //         })
-  //       ) : undefined
-  //       });
-  //     } catch (error) {
-  //       console.error('Failed to save user message to database:', error);
-  //     }
-  //   }
-  // }
-    // Save the user's latest message to the database
