@@ -9,6 +9,9 @@ import { ChatApiService } from '../../../../services/api';
 import type { UploadedClientFile } from '../../../../lib/client-cloudinary';
 import { uploadFilesClient } from '../../../../lib/client-cloudinary';
 
+// Static user ID for the demo
+const STATIC_USER_ID = 'static_user_karan';
+
 interface ChatPageClientProps {
   chatId: string;
 }
@@ -40,19 +43,43 @@ export default function ChatPage() {
   
   const [input, setInput] = useState('');
   const [files, setUploadedFiles] = useState<UploadedClientFile[]>([]);
-  
   const [isLoading, setIsLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [isUserInitialized, setIsUserInitialized] = useState(false);
+
+  useEffect(() => {
+    const initializeUser = async () => {
+      try {
+        // Initialize static user
+        const initResponse = await fetch('/api/auth/init', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (initResponse.ok) {
+          console.log('Static user initialized');
+          setIsUserInitialized(true);
+        }
+      } catch (error) {
+        console.error('Failed to initialize user:', error);
+      }
+    };
+
+    initializeUser();
+  }, []);
 
   useEffect(() => {
     const loadExistingMessages = async () => {
       try {
-        console.log('chatId:',chatId)
+        console.log('chatId:', chatId);
         if (!chatId) return;
         
         // Use the API service instead of direct fetch
         const existingChat = await ChatApiService.getChat(chatId);
         
-        console.log('existingChat:',existingChat);
+        console.log('existingChat:', existingChat);
        
         if (existingChat && existingChat.messages.length > 0) {
           const uiMessages = existingChat.messages.map((msg: any) => {
@@ -74,8 +101,18 @@ export default function ChatPage() {
               createdAt: msg.timestamp,
             };
           });
-          console.log("uiMessages:",uiMessages)
+          console.log("uiMessages:", uiMessages);
           setMessages(uiMessages);
+        }
+
+        // Load user profile with memory context
+        if (isUserInitialized) {
+          const userResponse = await fetch(`/api/auth/user?userId=${STATIC_USER_ID}`);
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            console.log("userData:", userData);
+            setUserProfile(userData.memory);
+          }
         }
       } catch (error) {
         console.error('Failed to load existing messages:', error);
@@ -84,12 +121,26 @@ export default function ChatPage() {
       }
     };
 
-    loadExistingMessages();
-  }, [chatId, setMessages]);
+    if (isUserInitialized) {
+      loadExistingMessages();
+    }
+  }, [chatId, setMessages, isUserInitialized]);
 
-  
+  // Enhanced send message with user context
+  const sendMessageWithUser = async (message: any) => {
 
-  
+    console.log("static_user_id",STATIC_USER_ID)
+    // Add user context to the message metadata
+    const messageWithUser = {
+      ...message,userId: STATIC_USER_ID,
+      metadata: {
+        ...message.metadata,
+        chatId: chatId,
+      }
+    };
+    console.log("messageWithUser:",messageWithUser)
+    await sendMessage(messageWithUser);
+  };
 
   if (isLoading) {
     return (
@@ -113,11 +164,21 @@ export default function ChatPage() {
             AI Chat Assistant
           </h1>
           <p className="text-gray-600 text-lg">
-            Powered by Google&apos;s Generative AI
+            Powered by Google&apos;s Generative AI with Memory
           </p>
           <p className="text-sm text-gray-500 mt-2">
-            Chat ID: {chatId}
+            Chat ID: {chatId} | User: {STATIC_USER_ID}
           </p>
+          
+          {/* User Profile Display */}
+          {userProfile && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="text-sm text-blue-800">
+                <strong>Learning Profile:</strong> {userProfile.preferences?.conversationStyle || 'casual'} style, 
+                {userProfile.preferences?.topics?.length || 0} preferred topics
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Chat Container */}
@@ -138,7 +199,7 @@ export default function ChatPage() {
             setUploadedFiles={setUploadedFiles}
             status={status}
             onStop={stop}
-            sendMessage={sendMessage}
+            sendMessage={sendMessageWithUser}
             chatId={chatId}
             messages={messages}
           />

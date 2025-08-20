@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IChat extends Document {
   id: string;
+  userId?: string; // Add userId field
   createdAt: Date;
   updatedAt: Date;
   messages: Array<{
@@ -23,6 +24,11 @@ const ChatSchema: Schema = new Schema({
     type: String,
     required: true,
     unique: true,
+    index: true,
+  },
+  userId: {
+    type: String,
+    required: false,
     index: true,
   },
   createdAt: {
@@ -80,18 +86,17 @@ ChatSchema.pre('save', function(next) {
   next();
 });
 
-// Create a compound index for better query performance
+// Create compound indexes for better query performance
 ChatSchema.index({ id: 1, isActive: 1 });
+ChatSchema.index({ userId: 1, isActive: 1 });
 ChatSchema.index({ createdAt: -1 });
+ChatSchema.index({ userId: 1, createdAt: -1 });
 
-// Ensure the model is properly registered
 let Chat: mongoose.Model<IChat>;
 
 try {
-  // Try to get existing model
   Chat = mongoose.model<IChat>('Chat');
 } catch {
-  // If model doesn't exist, create it
   Chat = mongoose.model<IChat>('Chat', ChatSchema);
 }
 

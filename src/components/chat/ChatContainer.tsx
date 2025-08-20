@@ -1,6 +1,6 @@
 'use client';
 import { useRef, useEffect, useState } from 'react';
-import { Loader2, RefreshCw, Copy, Check, Edit } from 'lucide-react';
+import { Loader2, RefreshCw, Copy, Check, Edit,X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -24,12 +24,20 @@ export default function ChatContainer({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
+const [preview, setPreview] = useState<{ url: string; filename?: string } | null>(null);
   
   // console.log("chatContainerMessage:",messages)
   useEffect(() => {
-    window.scrollTo(0, document.body.scrollHeight);
-  }, [messages, status]);
+   
+    const timerId = setTimeout(() => {
+      window.scrollTo(0, document.body.scrollHeight);
+    }, 2000); // Delay of 2000 milliseconds (2 seconds)
+
+    // 2. Cleanup function: runs on component unmount
+    return () => {
+      clearTimeout(timerId); // Cancels the timeout if the component unmounts
+    };
+  }, [status,messages]);
 
   const handleEdit = (messageId: string, currentText: string) => {
     setEditingId(messageId);
@@ -69,7 +77,37 @@ export default function ChatContainer({
       console.error('Failed to copy text: ', err);
     }
   };
-
+// console.log("ContainerMessage:",messages)
+if(preview){
+  return(
+    
+      <div
+        className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+        onClick={() => setPreview(null)}
+      >
+        <div className="relative max-w-4xl max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => setPreview(null)}
+            className="absolute -top-3 -right-3 bg-white rounded-full p-1 shadow hover:bg-gray-100"
+            aria-label="Close preview"
+            title="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <img
+            src={preview.url}
+            alt={preview.filename || 'Preview'}
+            className="max-w-[90vw] max-h-[80vh] rounded shadow-lg"
+          />
+          {preview.filename && (
+            <div className="mt-2 text-center text-white text-sm">{preview.filename}</div>
+          )}
+        </div>
+      </div>
+    
+  )
+}
   return (
     <div 
       className={`bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-6 mb-6 ${
@@ -107,7 +145,7 @@ export default function ChatContainer({
       ) : (
         <div className="space-y-4">
           {messages.map(message => (
-            <div key={`${Math.random()}`} className={`flex ${
+            <div key={message.id} className={`flex ${
               message.role === 'user' ? 'justify-end' : 'justify-start'
             }`}>
               <div className={`flex flex-row max-w-[80%] p-8 rounded-2xl shadow-sm relative group ${
@@ -161,33 +199,8 @@ export default function ChatContainer({
                   )}
                 </div>
                 
-                <div className=' flex flex-col gap-2'>
-                 <div>
-{message.parts.map((part: any, index: number) => {
-if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
-    return (
-
-     <div key={part.index} className="relative group">
-                  <div className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200">
-                    <div className="text-sm text-gray-600 truncate max-w-[120px]">
-                      {part.filename}
-                    </div>
-                    {/* <div className="text-xs text-gray-400">
-                      {(part.size / (1024 * 1024)).toFixed(2)}MB
-                    </div> */}
-                   
-                  </div>
-                 
-                  
-                </div>
-    );
-	}
-}
-)
-}
-                  </div> 
-                  <div className='flex flex-row'>
-                  <div className="flex items-top gap-2 mt-1">
+                <div className=' flex flex-row gap-2'>
+                <div className="flex items-top gap-2 mt-1">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
                       message.role === 'user' 
                         ? 'bg-blue-100 text-blue-600' 
@@ -197,6 +210,34 @@ if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
                     </div> 
                   </div>
                   
+                  <div className='flex flex-col'>
+                  
+                  <div>
+
+{message.parts.map((part: any, index: number) => {
+  if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
+    return (
+      <div key={part.index ?? `${message.id}-img-${index}`} className="relative group">
+        <button
+          type="button"
+          onClick={() => setPreview({ url: part.url, filename: part.filename })}
+          className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:bg-gray-50"
+          title="Click to preview"
+        >
+          <img
+            src={part.url}
+            alt={part.filename || 'Image'}
+            className="w-5 h-5 object-cover rounded border"
+          />
+          <div className="text-sm text-gray-600 truncate max-w-[160px]">
+            {part.filename}
+          </div>
+        </button>
+      </div>
+    );
+  }
+})}
+                  </div>
                   {editingId === message.id && message.role === 'user' ? (
                     <div className="space-y-2">
                       <textarea
@@ -226,7 +267,7 @@ if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
                       {message.parts.map((part: any, index: number) => {
 	if (part.type === 'text') {
 		return (
-			<div key={`${message.id}-part-${index}`} className="w-full whitespace-pre-wrap leading-relaxed markdown">
+			<div key={message.id} className="w-full whitespace-pre-wrap leading-relaxed markdown">
 				<ReactMarkdown remarkPlugins={[remarkGfm]}>
 					{part.text}
 				</ReactMarkdown>

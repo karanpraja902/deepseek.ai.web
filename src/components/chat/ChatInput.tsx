@@ -10,7 +10,7 @@ interface ChatInputProps {
   setUploadedFiles: (files: UploadedClientFile[]) => void;
   status: string;
   onStop: () => void;
-  sendMessage: (message: { text: string; metadata: { chatId: string; files: UploadedClientFile[] } }) => void;
+  sendMessage: (message: { text?: string; parts?: any[]; metadata: { chatId: string } }) => void;
   chatId: string;
   messages: any[];
 }
@@ -105,9 +105,17 @@ return;
     e.preventDefault();
     if (input.trim() || files.length > 0) {
       console.log("handleSubmitFiles:",files)
+      const textPart = input.trim() ? [{ type: 'text', text: input }] : [];
+      const fileParts = files.map(f => ({
+        type: 'file',
+        url: f.url,
+        mediaType: f.mediaType,
+        filename: f.filename,
+      }));
+
       sendMessage({
-        text: input,
-        metadata: { chatId, files },
+        parts: [...textPart, ...fileParts],
+        metadata: { chatId },
       });
       console.log("message:",messages)
 

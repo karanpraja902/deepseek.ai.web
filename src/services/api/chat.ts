@@ -1,4 +1,4 @@
-// API service for chat operations
+// API service for chat operations//Endpoint
 export class ChatApiService {
     private static baseUrl = '/api/chat';
   
