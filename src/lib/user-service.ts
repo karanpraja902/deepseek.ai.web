@@ -23,7 +23,7 @@ export class UserService {
       isActive: true,
     });
 
-    const savedUser = await user.save();
+    const savedUser = await user.save() ;
 
     // Store initial preferences in memory
     await this.memoryService.storeUserPreferences(savedUser.id, {

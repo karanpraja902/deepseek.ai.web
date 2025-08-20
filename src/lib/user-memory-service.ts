@@ -67,6 +67,7 @@ export class UserMemoryService {
           {
             role: 'system',
             content: JSON.stringify({
+              mem_key: `user_${userId}_chat_${chatId}`,
               userId,
               chatId,
               context,
@@ -115,6 +116,7 @@ export class UserMemoryService {
           {
             role: 'system',
             content: JSON.stringify({
+              mem_key: `user_${userId}_preferences`,
               userId,
               preferences,
               lastUpdated: new Date().toISOString()
@@ -178,6 +180,7 @@ export class UserMemoryService {
           {
             role: 'system',
             content: JSON.stringify({
+              mem_key: `user_${userId}_summary_${chatId}`,
               userId,
               chatId,
               summary,
@@ -241,25 +244,22 @@ export class UserMemoryService {
   /**
    * Store user interaction patterns
    */
-  async storeUserInteractionPattern(userId: string, pattern: {
+async storeUserInteractionPattern(userId: string, pattern: {
     type: 'question_style' | 'topic_preference' | 'response_feedback';
     data: any;
   }) {
+    
     try {
-      console.log("storing user interaction pattern");
-      await this.memory.add(
+      const memKey = `user_${userId}_pattern_${pattern.type}`;
+      const text = `[${memKey}] User ${userId} interaction pattern: ${pattern.type} | details: ${JSON.stringify(pattern.data)} | ts=${new Date().toISOString()}`;
+      
+      const result = await this.memory.add(
         [
-          {
-            role: 'system',
-            content: JSON.stringify({
-              userId,
-              pattern,
-              timestamp: new Date().toISOString()
-            })
-          }
+          { role: 'user', content: text }
         ],
-        { user_id: userId, metadata: { key: `user_${userId}_pattern_${pattern.type}_${Date.now()}` } }
+        { user_id: userId, metadata: { key: `${memKey}_${Date.now()}` } }
       );
+      console.log("storeUserInteractionPattern result:", result);
     } catch (error) {
       console.error('Failed to store user interaction pattern:', error);
     }
@@ -276,12 +276,14 @@ export class UserMemoryService {
         user_id: userId,
         limit: 20
       });
+      console.log("patterns:", patterns);
       const patternItems = (patterns?.results || [])
         .map((m: any) => { try { return JSON.parse(m.content); } catch { return null; } })
         .filter(Boolean);
-
+      console.log("patternItems:", patternItems);
       const preferences = await this.getUserPreferences(userId);
       const history = await this.getUserConversationHistory(userId, 5);
+      console.log("preferences:", preferences);
       console.log("history:", history);
 
       return {

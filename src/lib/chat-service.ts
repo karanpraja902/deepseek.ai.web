@@ -93,8 +93,8 @@ export class ChatService {
     }
 
     const savedChat = await chat.save();
-    console.log("savedChat:", savedChat);
-    console.log("aftersavechatuserId:", userId);
+    console.log("addMessage-savedChat:", savedChat);
+    console.log("addMessage-aftersavechatuserId:", {userId,chatId});
 
     // Store conversation context in user-specific memory
     if (userId) {

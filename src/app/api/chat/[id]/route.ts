@@ -6,13 +6,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log("params:", params);
-    const Id = await params.id.split("&&");
-    console.log("IdDDDDDDDDD:", Id);
-    const chatId = Id[0];
-    const userId = Id[1];
-    const chat = await ChatService.getChat(chatId, userId);
-    console.log("chat:", chat);
+    const chatId = await params.id;
+    const chat = await ChatService.getChat(chatId);
     if (chat) {
       return NextResponse.json({
         id: chat.id,

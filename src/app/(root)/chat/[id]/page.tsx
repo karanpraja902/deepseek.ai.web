@@ -18,6 +18,8 @@ interface ChatPageClientProps {
 
 export default function ChatPage() {
   const params = useParams();
+  console.log("Params:",params)
+let id=params
   const chatId = params.id as string;
   
   const { 
