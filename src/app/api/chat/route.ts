@@ -3,32 +3,57 @@ import { streamText, UIMessage, convertToModelMessages } from 'ai';
 import { ChatService } from '../../../lib/chat-service';
 import { UserMemoryService } from '../../../lib/user-memory-service';
 import { text } from 'stream/consumers';
+import MemoryClient from 'mem0ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
-const memoryService = UserMemoryService.getInstance();
+const mem0 = new MemoryClient({ apiKey: process.env.MEM0_API_KEY! });
+console.log("✅ Mem0 initialized:", !!process.env.MEM0_API_KEY);
 
 export async function POST(req: Request) {
   console.log("postmessage");
   
   const body = await req.json();
   const messages: UIMessage[] = body.messages ?? [];
-
   console.log("chat routebody:", body);
-; // Extract userId from request body
   
-  // Extract chatId from body first, then from message metadata as fallback
-  console.log('messagesToBeAdded:', messages);
-  console.log(messages.length);
-  let last=messages.length-1
+  let last = messages.length - 1;
   const chatId = body.chatId ?? (messages[last] as any)?.metadata?.chatId;
-  const userId = body.userId?? (messages[last] as any)?.userId
-  console.log('chatId userId', {chatId,userId});
-  // console.log('userId', userId);
-  
+  const userId = body.userId ?? (messages[last] as any)?.userId;
+  console.log('chatId userId', {chatId, userId});
+
+  // Store user message in mem0
+  if (messages.length > 0 && userId && messages[last].role === 'user') {
+    const lastMessage = messages[last] as any;
+    const textPart = lastMessage.parts?.find((p: any) => p?.type === 'text') ?? null;
+    const content = (textPart?.text || '').trim();
+    
+    if (content) {
+      try {
+        await mem0.add(
+          [
+            { role: 'user', content: content }
+          ],
+          {
+            user_id: userId,
+            metadata: {
+              type: 'user_message',
+              chatId: chatId,
+              timestamp: new Date().toISOString()
+            }
+          }
+        );
+        console.log("✅ User message stored in mem0");
+      } catch (error) {
+        console.error('Failed to store user message in mem0:', error);
+      }
+    }
+  }
+
   if (messages.length > 0 && chatId) {
     const lastMessage = messages[last] as any;
+
     console.log("lastMessage:", lastMessage);
     if (lastMessage.role === 'user') {
       try {
@@ -93,36 +118,14 @@ export async function POST(req: Request) {
     }
   }
 
-  // Get user-specific context and preferences
-  let userContext = '';
-  let userPreferences = null;
-  
-  if (userId) {
-    try {
-      // Get user's learning profile and preferences
-      const userProfile = await memoryService.getUserLearningProfile(userId);
-      userPreferences = userProfile.preferences;
-      
-      // Get relevant context from user's conversation history
-      const lastMessage = messages[last];
-      if (lastMessage && lastMessage.role === 'user') {
-        const textPart = lastMessage.parts?.find((p: any) => p?.type === 'text') as any;
-        const userContent = textPart?.text || '';
-        const relevantContext = await memoryService.getUserRelevantContext(userId, userContent);
-        
-        if (relevantContext.length > 0) {
-          userContext = `
-Previous relevant conversations:
-${relevantContext.map((ctx: any) => `- ${ctx.content}`).join('\n')}
-`;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to get user context:', error);
-    }
-  }
+  const memories = await mem0.getAll({
+    user_id: userId
+  })
+  console.log(memories, "here are the user memories")
 
-  // Enhanced system prompt with user context
+  // Stringify memories so the model can actually read them
+  const memoriesStr = JSON.stringify(memories, null, 2);
+
   const systemPrompt = `
 Respond to all prompts with clear, structured formatting:
 
@@ -136,15 +139,6 @@ Respond to all prompts with clear, structured formatting:
 6. Limit to 5-7 key points for brevity
 7. Use line breaks between sections for readability
 
-${userPreferences ? `
-User Preferences:
-- Conversation Style: ${userPreferences.conversationStyle || 'casual'}
-- Language: ${userPreferences.language || 'en'}
-- Preferred Topics: ${userPreferences.topics?.join(', ') || 'general'}
-` : ''}
-
-${userContext}
-
 Example structure:
 [Brief overview sentence]
 
@@ -156,35 +150,35 @@ Example structure:
 ## Main Topic 2
 - Key point 1
 - Key point 2
+
+Here are user information saved in memories, you can access to all 
+these are user memories - ${memoriesStr}
 `;
 
   const result = await streamText({
     model: google('models/gemini-2.5-flash'),
     system: systemPrompt,
-    temperature: 0.25, // Balanced for structure + creativity
-    maxOutputTokens: 3000, // Allows for structured formatting
-    messages: convertToModelMessages(messages.slice(-8)), // Slightly smaller context
+    temperature: 0.25,
+    maxOutputTokens: 3000,
+    messages: convertToModelMessages(messages.slice(-8)),
   });
 
   let assistantResponse = '';
 
   function formatResponseStructure(rawText: string): string {
-    // Ensure consistent line breaks
     let formatted = rawText.replace(/\n{3,}/g, '\n\n');
     
-    // Standardize headers
     formatted = formatted.replace(/^(#+\s*.+)/gm, (match) => {
       return `\n${match}\n`;
     });
     
-    // Ensure bullet point consistency
     formatted = formatted.replace(/^(\s*[-*+]\s+)/gm, '- ');
     
     return formatted.trim();
   }
 
   const customStream = result.toUIMessageStreamResponse({
-    messageMetadata: ({ part }) => {
+    messageMetadata: async ({ part }) => {
       if (part.type === 'start') {
         return {
           createdAt: Date.now()
@@ -192,15 +186,37 @@ Example structure:
       }
 
       if (part.type === 'finish') {
-        // format the final aggregated text before saving
+        // Format the final aggregated text before saving
         assistantResponse = formatResponseStructure(assistantResponse);
+        
         if (chatId && assistantResponse.trim()) {
-          ChatService.addMessage(chatId, {
-            role: 'assistant',
-            content: assistantResponse,
-          }, userId).catch(error => {
-            console.error('Failed to save assistant message to database:', error);
-          });
+          try {
+            // Save assistant message to database
+            await ChatService.addMessage(chatId, {
+              role: 'assistant',
+              content: assistantResponse,
+            }, userId);
+            
+            // Store assistant message in mem0
+            if (userId) {
+              await mem0.add(
+                [
+                  { role: 'assistant', content: assistantResponse }
+                ],
+                {
+                  user_id: userId,
+                  metadata: {
+                    type: 'assistant_message',
+                    chatId: chatId,
+                    timestamp: new Date().toISOString()
+                  }
+                }
+              );
+              console.log("✅ Assistant message stored in mem0");
+            }
+          } catch (error) {
+            console.error('Failed to save assistant message:', error);
+          }
         }
         return { totalTokens: part.totalUsage.totalTokens };
       }
