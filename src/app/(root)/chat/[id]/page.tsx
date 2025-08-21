@@ -48,6 +48,9 @@ let id=params
   const [isLoading, setIsLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isUserInitialized, setIsUserInitialized] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState('');
+
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -144,6 +147,53 @@ let id=params
     await sendMessage(messageWithUser);
   };
 
+  // Helper function to generate conversation title
+  const getConversationTitle = (messages: any[]) => {
+    if (messages.length === 0) return '';
+    
+    // Get the first user message to determine the topic
+    const firstUserMessage = messages.find(msg => msg.role === 'user');
+    if (!firstUserMessage) return 'Current Conversation';
+    
+    const content = firstUserMessage.parts?.find((p: any) => p?.type === 'text')?.text || '';
+    
+    // Extract key topic from the first message
+    if (content.includes('vs') || content.includes('difference between')) {
+      return 'Comparison Analysis';
+    } else if (content.includes('explain') || content.includes('how')) {
+      return 'Explanation & Guidance';
+    } else if (content.includes('create') || content.includes('build')) {
+      return 'Creation & Development';
+    } else if (content.includes('analyze') || content.includes('review')) {
+      return 'Analysis & Review';
+    } else {
+      // Default: use first few words as title
+      const words = content.split(' ').slice(0, 4).join(' ');
+      return words.length > 20 ? words.substring(0, 20) + '...' : words;
+    }
+  };
+
+  // Helper function to generate conversation subtitle
+  const getConversationSubtitle = (messages: any[]) => {
+    if (messages.length === 0) return '';
+    
+    const firstUserMessage = messages.find(msg => msg.role === 'user');
+    if (!firstUserMessage) return 'AI-powered conversation';
+    
+    const content = firstUserMessage.parts?.find((p: any) => p?.type === 'text')?.text || '';
+    
+    // Generate contextual subtitle
+    if (content.includes('vs') || content.includes('difference between')) {
+      return 'Detailed comparison and analysis';
+    } else if (content.includes('explain') || content.includes('how')) {
+      return 'Step-by-step guidance and explanations';
+    } else if (content.includes('create') || content.includes('build')) {
+      return 'Development and creation assistance';
+    } else {
+      return 'AI-powered conversation with memory';
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 flex flex-col">
@@ -158,10 +208,10 @@ let id=params
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 flex flex-col">
-      <div className="max-w-5xl mx-auto flex-1 flex flex-col w-full">
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50  to-indigo-100 p-4 flex flex-col`}>
+      <div className={`max-w-5xl  mx-auto flex-1 flex flex-col w-full ${messages.length === 0 ? 'justify-center' : ''}`}>
         {/* Header */}
-        <div className="text-center mb-8">
+        {!messages.length&&<div className="text-center mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
             AI Chat Assistant
           </h1>
@@ -181,16 +231,76 @@ let id=params
               </div>
             </div>
           )}
-        </div>
+        </div>}
         
-        {/* Chat Container */}
-        <ChatContainer
-          messages={messages}
-          status={status}
-          error={error}
-          onRegenerate={regenerate}
-          setMessages={setMessages}
-        />
+        {/* Dynamic Title Box - Sticky header that stays visible when scrolling */}
+        {messages.length > 0 && (
+        
+            <div className="sticky flex justify-center top-0 z-10  bg-gradient-to-b from-transparent to-white/50 pb-4 rounded-2xl ">
+              <div 
+                className="p-4 rounded-2xl shadow-sm group bg-white border border-gray-100 text-gray-100 cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => {
+                  if (!isEditingTitle) {
+                    setIsEditingTitle(true);
+                    setEditedTitle(editedTitle?editedTitle:getConversationTitle(messages));
+                  }
+                }}
+              >
+                {isEditingTitle ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={editedTitle}
+                      onChange={(e) => setEditedTitle(e.target.value)}
+                      className="text-xl font-bold text-gray-900 bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          setIsEditingTitle(false);
+                          // Here you could save the new title to your backend if needed
+                        } else if (e.key === 'Escape') {
+                          setIsEditingTitle(false);
+                          setEditedTitle(getConversationTitle(messages));
+                        }
+                      }}
+                      onBlur={() => {
+                        setIsEditingTitle(false);
+                        // Here you could save the new title to your backend if needed
+                      }}
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsEditingTitle(false);
+                        // Here you could save the new title to your backend if needed
+                      }}
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                    >
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {editedTitle?editedTitle:getConversationSubtitle(messages)}
+                  </h2>
+                )}
+              </div>
+            </div>
+          
+        )}
+        
+        {/* Chat Container with proper scrolling context */}
+        {messages.length > 0 && (
+          <div className="flex-1 overflow-hidden">
+            <ChatContainer
+              messages={messages}
+              status={status}
+              error={error}
+              onRegenerate={regenerate}
+              setMessages={setMessages}
+            />
+          </div>
+        )}
 
         {/* Input Form - Always fixed at bottom */}
         {!error && (

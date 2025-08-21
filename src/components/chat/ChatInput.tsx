@@ -2,6 +2,7 @@
 import { uploadFilesClient, deleteFileFromCloudinary, UploadedClientFile } from '@/lib/client-cloudinary';
 import { useRef, useState } from 'react';
 import { Paperclip, X, StopCircle, Loader2 } from 'lucide-react';
+import DictationButton from '../ui/DictationButton';
 
 interface ChatInputProps {
   input: string;
@@ -33,6 +34,14 @@ export default function ChatInput({
   const [Error,setError]=useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFileMetadata, setUploadedFileMetadata] = useState<UploadedClientFile[]>([]);
+
+  // Handle transcript from dictation
+  const handleTranscript = (transcript: string) => {
+    setInput(input + transcript);
+  };
+
+  // Handle recording state changes
+  const [isRecording, setIsRecording] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     // console.log("local file:",Array.from(e.target.files))
@@ -179,13 +188,25 @@ return;
           </div>
         )}
 
-        <div className="flex gap-3 p-2 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20">
+        {/* Recording indicator */}
+        {isRecording && (
+          <div className="mb-2 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+            <span className="text-red-700 text-sm font-medium">Recording... Speak now</span>
+          </div>
+        )}
+
+        <div className={`flex gap-3 p-2 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border transition-all duration-300 ${
+          isRecording 
+            ? 'border-red-300 bg-red-50/80' 
+            : 'border-white/20'
+        }`}>
           {/* Text input */}
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
             disabled={status !== 'ready'}
-            placeholder="Ask me anything..."
+            placeholder={isRecording ? "Listening... Speak now..." : "Ask me anything..."}
             className="flex-1 px-4 py-3 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-lg disabled:opacity-50"
           />
           
@@ -210,6 +231,15 @@ return;
             />
           </button>
           
+          {/* Dictation button */}
+          <DictationButton
+            onTranscript={handleTranscript}
+            onRecordingChange={setIsRecording}
+            disabled={status !== 'ready'}
+            size="md"
+            showTooltip={true}
+          />
+
           {/* Submit or stop button */}
           {(status === 'submitted' || status === 'streaming') ? (
             <button 
@@ -223,20 +253,22 @@ return;
                 Stop Generation
               </div>
             </button>
-          ) : (
+          ) : (!isRecording&&(
             <button 
-              type="submit" 
-              disabled={status !== 'ready' || (!input.trim() && files.length === 0)}
-              className="px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-colors flex items-center justify-center relative group/tooltip"
-              title="Send Message"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                Send Message
-              </div>
-            </button>
+            type="submit" 
+            disabled={status !== 'ready' || (!input.trim() && files.length === 0)}
+            className="px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-colors flex items-center justify-center relative group/tooltip"
+            title="Send Message"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+              Send Message
+            </div>
+          </button>
+          )
+            
           )}
         </div>
       </form>

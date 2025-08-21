@@ -28,15 +28,18 @@ const [preview, setPreview] = useState<{ url: string; filename?: string } | null
   
   // console.log("chatContainerMessage:",messages)
   useEffect(() => {
+    if(status==="streaming"){
+      const timerId = setTimeout(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      }, 1000); // Delay of 2000 milliseconds (2 seconds)
+  
+      // 2. Cleanup function: runs on component unmount
+      return () => {
+        clearTimeout(timerId); // Cancels the timeout if the component unmounts
+      };
+    }
    
-    const timerId = setTimeout(() => {
-      window.scrollTo(0, document.body.scrollHeight);
-    }, 2000); // Delay of 2000 milliseconds (2 seconds)
 
-    // 2. Cleanup function: runs on component unmount
-    return () => {
-      clearTimeout(timerId); // Cancels the timeout if the component unmounts
-    };
   }, [status,messages]);
 
   const handleEdit = (messageId: string, currentText: string) => {
@@ -85,6 +88,17 @@ if(preview){
         className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
         onClick={() => setPreview(null)}
       >
+        {messages.length > 0 && (
+          <div className="sticky bottom-0 bg-gradient-to-b from-transparent to-white/50 pb-4">
+            <div className="border-2 border-gray-200 rounded-lg p-2 bg-white shadow-sm">
+              <div className="text-center">
+                <h2 className="text-xl  text-gray-900 ">
+                  {/* {getConversationTitle(messages)} */}abcd
+                </h2>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="relative max-w-4xl max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
@@ -148,10 +162,10 @@ if(preview){
             <div key={message.id} className={`flex ${
               message.role === 'user' ? 'justify-end' : 'justify-start'
             }`}>
-              <div className={`flex flex-row max-w-[80%] p-8 rounded-2xl shadow-sm relative group ${
+              <div className={`flex flex-row max-w p-8 rounded-2xl shadow-sm relative group ${
                 message.role === 'user' 
                   ? 'bg-gray-50 border border-gray-100 text-gray-800' 
-                  : 'bg-gray-50 border border-gray-100 text-gray-800'
+                  : 'bg-white border border-gray-100 text-gray-800'
               }`}>
                 <div className="flex items-center gap-2 absolute -bottom-2 right-2 mb-3 group-hover:opacity-100 transition-opacity duration-200">
                   {message.role === 'assistant' && (status !== "streaming") && (

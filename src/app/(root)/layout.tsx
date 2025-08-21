@@ -14,6 +14,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {/* header */}
+        
         {/* chatsidebar */}
         {children}
         {/* footer */}
