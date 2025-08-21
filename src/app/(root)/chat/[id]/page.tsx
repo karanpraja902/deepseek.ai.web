@@ -291,7 +291,7 @@ let id=params
         
         {/* Chat Container with proper scrolling context */}
         {messages.length > 0 && (
-          <div className="flex-1 overflow-hidden">
+          
             <ChatContainer
               messages={messages}
               status={status}
@@ -299,7 +299,7 @@ let id=params
               onRegenerate={regenerate}
               setMessages={setMessages}
             />
-          </div>
+          
         )}
 
         {/* Input Form - Always fixed at bottom */}

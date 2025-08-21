@@ -1,7 +1,7 @@
 'use client';
 import { uploadFilesClient, deleteFileFromCloudinary, UploadedClientFile } from '@/lib/client-cloudinary';
-import { useRef, useState } from 'react';
-import { Paperclip, X, StopCircle, Loader2 } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
+import { Paperclip, X, StopCircle, Loader2, Globe, Image as ImageIcon, Code2, FileText, Table, CloudSun, FlaskConical, Wrench, SlidersHorizontal } from 'lucide-react';
 import DictationButton from '../ui/DictationButton';
 
 interface ChatInputProps {
@@ -34,6 +34,21 @@ export default function ChatInput({
   const [Error,setError]=useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFileMetadata, setUploadedFileMetadata] = useState<UploadedClientFile[]>([]);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Tools dropdown state and outside-click handler
+  const [showTools, setShowTools] = useState(false);
+  const toolsMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showTools) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (toolsMenuRef.current && !toolsMenuRef.current.contains(e.target as Node)) {
+        setShowTools(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [showTools]);
 
   // Handle transcript from dictation
   const handleTranscript = (transcript: string) => {
@@ -65,6 +80,15 @@ return;
       return;
     }
 
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (status === 'ready' && (input.trim() || files.length > 0)) {
+        formRef.current?.requestSubmit();
+      }
+    }
   };
   if(preFile?.[0]){
   console.log("prefile:",preFile?.[0].name)
@@ -134,10 +158,30 @@ return;
     }
   };
 
+  // Tools selection helper
+  const handleToolSelect = (key: string) => {
+    const prompts: Record<string, string> = {
+      web: 'Search the web for: ',
+      code: 'Write code for: ',
+      doc: 'Summarize this document: ',
+      csv: 'Analyze this CSV: ',
+      weather: 'Weather in ',
+      research: 'Deep research on: '
+    };
+    if (key === 'image') {
+      setShowTools(false);
+      fileInputRef.current?.click();
+      return;
+    }
+    const p = prompts[key] ?? '';
+    setInput(input ? input + '\n' + p : p);
+    setShowTools(false);
+  };
+
 
   return (
     <div className={`sticky bottom-0 bg-gradient-to-b from-transparent to-white/50 pb-4`}>
-      <form onSubmit={handleSubmit}>
+      <form ref={formRef} onSubmit={handleSubmit}>
         {/* File preview section */}
         {preFile.length > 0 && (
           <div className="mb-2 p-2 bg-white/50 rounded-lg border border-gray-200">
@@ -201,14 +245,57 @@ return;
             ? 'border-red-300 bg-red-50/80' 
             : 'border-white/20'
         }`}>
-          {/* Text input */}
-          <input
+          {/* Text input (textarea to support Shift+Enter newline) */}
+          <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
             disabled={status !== 'ready'}
             placeholder={isRecording ? "Listening... Speak now..." : "Ask me anything..."}
-            className="flex-1 px-4 py-3 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-lg disabled:opacity-50"
+            rows={1}
+            className="flex-1 px-4 py-3 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-lg disabled:opacity-50 resize-none"
           />
+          <div className="flex relative justify-center" ref={toolsMenuRef}>
+            <button
+              type="button"
+              onClick={() => setShowTools(v => !v)}
+              className="p-2 text-gray-500 hover:text-blue-600 transition-colors relative group/tooltip"
+              title="Tools"
+            >
+              <SlidersHorizontal className="w-5 h-5" />
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                Tools
+              </div>
+            </button>
+            
+            {showTools && (
+              <div className="absolute bottom-full right-0 mb-2 w-64 bg-white rounded-xl border border-gray-200 shadow-lg p-2 z-20">
+                <div className="flex flex-col">
+                  <button onClick={() => handleToolSelect('web')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
+                    <span className="flex items-center gap-2"><Globe className="w-4 h-4" />Web Search</span>
+                  </button>
+                  <button onClick={() => handleToolSelect('image')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
+                    <span className="flex items-center gap-2"><ImageIcon className="w-4 h-4" />Image</span>
+                  </button>
+                  <button onClick={() => handleToolSelect('code')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
+                    <span className="flex items-center gap-2"><Code2 className="w-4 h-4" />Code</span>
+                  </button>
+                  <button onClick={() => handleToolSelect('doc')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
+                    <span className="flex items-center gap-2"><FileText className="w-4 h-4" />Document</span>
+                  </button>
+                  <button onClick={() => handleToolSelect('csv')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
+                    <span className="flex items-center gap-2"><Table className="w-4 h-4" />CSV</span>
+                  </button>
+                  <button onClick={() => handleToolSelect('weather')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
+                    <span className="flex items-center gap-2"><CloudSun className="w-4 h-4" />Weather</span>
+                  </button>
+                  <button onClick={() => handleToolSelect('research')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
+                    <span className="flex items-center gap-2"><FlaskConical className="w-4 h-4" />Deep Research</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           
           {/* File input button */}
           <button

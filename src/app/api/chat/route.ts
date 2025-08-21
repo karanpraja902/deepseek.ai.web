@@ -5,7 +5,7 @@ import { UserMemoryService } from '../../../lib/user-memory-service';
 import { text } from 'stream/consumers';
 import MemoryClient from 'mem0ai';
 import { createOpenRouter} from '@openrouter/ai-sdk-provider';
-const openrouter = createOpenRouter({ apiKey: process.env.OPEN_ROUTER_META });
+const openrouter = createOpenRouter({ apiKey: process.env.OPEN_ROUTER_DEEPSEEK_R1_1 });
 // import { generateText } from 'ai';
 
 // const { text } = await generateText({
@@ -50,6 +50,31 @@ export async function POST(req: Request) {
   const userId = body.userId ?? (messages[last] as any)?.userId;
   console.log('chatId userId', {chatId, userId});
 
+  // Persist the latest user message immediately
+  try {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg && lastMsg.role === 'user' && chatId) {
+      const textPart = Array.isArray((lastMsg as any).parts)
+        ? (lastMsg as any).parts.find((p: any) => p?.type === 'text')?.text
+        : (lastMsg as any).content;
+      const fileParts = Array.isArray((lastMsg as any).parts)
+        ? (lastMsg as any).parts.filter((p: any) => p?.type === 'file')
+        : [];
+
+      await ChatService.addMessage(chatId, {
+        role: 'user',
+        content: textPart || '',
+        files: fileParts?.map((f: any) => ({
+          filename: f.filename,
+          url: f.url,
+          mediaType: f.mediaType,
+        })) || [],
+      }, userId);
+    }
+  } catch (e) {
+    console.error('Failed to save user message:', e);
+  }
+
   // Use cached version
   const memories = await getMemoriesWithCache(userId);
   console.log(memories, "here are the user memories")
@@ -65,28 +90,28 @@ export async function POST(req: Request) {
   const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
 
   try {
-    // const result = await streamText({
-    //   model: google('models/gemini-2.5-flash'),
-    //   system: systemPrompt,
-    //   temperature: 0.25,
-    //   maxOutputTokens: 1500, // Reduced for faster generation
-    //   messages: convertToModelMessages(messages.slice(-5)), // Reduced context
-    // }, { signal: controller.signal });
-    const model=openrouter('deepseek/deepseek-r1-0528:free')
+    const result = await streamText({
+      model: google('models/gemini-2.5-flash'),
+      system: systemPrompt,
+      temperature: 0.25,
+      maxOutputTokens: 1500, // Reduced for faster generation
+      messages: convertToModelMessages(messages.slice(-5)), // Reduced context
+    }, { signal: controller.signal });
+//     const model=openrouter('deepseek/deepseek-r1-0528:free')
     
-    const result=await streamText({
-model,
-system:systemPrompt,
-temperature:0.25,
-messages:convertToModelMessages(messages.slice(-5)),
-providerOptions: {
-  openrouter: {
-    reasoning: {
-      max_tokens: 10,
-    },
-  },
-},
-    })
+//     const result=await streamText({
+// model,
+// system:systemPrompt,
+// temperature:0.25,
+// messages:convertToModelMessages(messages.slice(-5)),
+// providerOptions: {
+//   openrouter: {
+//     reasoning: {
+//       max_tokens: 10,
+//     },
+//   },
+// },
+//     })
     
     clearTimeout(timeoutId);
     console.log("timetaken",timeoutId)
@@ -161,7 +186,7 @@ providerOptions: {
     });
 
     return customStream;
-  } catch (error) {
+  } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
       return new Response('Request timeout', { status: 408 });

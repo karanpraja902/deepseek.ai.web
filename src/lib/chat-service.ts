@@ -75,11 +75,15 @@ export class ChatService {
   }, userId?: string): Promise<IChat | null> {
     await connectToDatabase();
     
-    const chat = await Chat.findOne({ id: chatId, isActive: true });
+    let chat = await Chat.findOne({ id: chatId, isActive: true }) as IChat | null;
     if (!chat) {
-      // If chat doesn't exist, create it
+      // If chat doesn't exist, create it then proceed to append the message
       console.log(`Chat ${chatId} not found, creating new chat`);
-      return await this.createChat(chatId, userId);
+      chat = await this.createChat(chatId, userId) as IChat;
+    }
+
+    if (!chat) {
+      return null;
     }
 
     chat.messages.push({
