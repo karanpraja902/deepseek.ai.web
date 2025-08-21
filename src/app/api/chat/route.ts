@@ -5,7 +5,6 @@ import { UserMemoryService } from '../../../lib/user-memory-service';
 import { text } from 'stream/consumers';
 import MemoryClient from 'mem0ai';
 import { createOpenRouter} from '@openrouter/ai-sdk-provider';
-const openrouter = createOpenRouter({ apiKey: process.env.OPEN_ROUTER_DEEPSEEK_R1_1 });
 // import { generateText } from 'ai';
 
 // const { text } = await generateText({
@@ -39,16 +38,16 @@ const getMemoriesWithCache = async (userId: string) => {
 
 export async function POST(req: Request) {
   console.log("postmessage");
-  console.log("openRouter:",openrouter)
   
   const body = await req.json();
   const messages: UIMessage[] = body.messages ?? [];
-  console.log("chat routebody:", body);
+  // console.log("chat routebody:", body);
   
   let last = messages.length - 1;
   const chatId = body.chatId ?? (messages[last] as any)?.metadata?.chatId;
   const userId = body.userId ?? (messages[last] as any)?.userId;
-  console.log('chatId userId', {chatId, userId});
+  const selectedModel: string = body.model ?? (messages[last] as any)?.model ?? (messages[last] as any)?.metadata?.model ?? 'google';
+  console.log('chatId userId SelectedModel', {chatId, userId, selectedModel});
 
   // Persist the latest user message immediately
   try {
@@ -77,26 +76,68 @@ export async function POST(req: Request) {
 
   // Use cached version
   const memories = await getMemoriesWithCache(userId);
-  console.log(memories, "here are the user memories")
 
-  // Stringify memories so the model can actually read them
-  const memoriesStr = JSON.stringify(memories, null, 2);
 
   // Optimized: Shorter, focused prompt
   const systemPrompt = `You are a helpful AI assistant. Use this context: ${JSON.stringify(memories.slice(0, 3))}`;
-
+  // : ${JSON.stringify(memories.slice(0, 3))}
   // Add request timeout
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
 
+  // Helper: map OpenRouter model -> env API key
+  function getOpenRouterKeyForModel(modelId: string): string | undefined {
+    // DeepSeek R1 key
+    console.log("getOpenRouterKeyForModel:",modelId)
+    if (modelId.startsWith('deepseek/deepseek-r1')) {
+      console.log("getOpenRouterKeyForModelIf:",modelId)
+      return process.env.OPEN_ROUTER_DEEPSEEK_R1_1;
+    }
+    if (modelId.startsWith('openai/gpt')) {
+      console.log("getOpenRouterKeyForModelIf:",modelId)
+      return process.env.OPEN_ROUTER_OPENAI;
+    }
+    if (modelId.startsWith('nvidia/llama')) {
+      console.log("getOpenRouterKeyForModelIf:",modelId)
+      return process.env.OPEN_ROUTER_Llama;
+    }
+
+    // Generic OpenRouter fallback
+    return process.env.OPEN_ROUTER_API_KEY;
+  }
+
+  // Choose model per selection; default to Google
+  const modelToUse = (() => {
+    console.log("modelToUse")
+    if (selectedModel === 'google') {
+      console.log("selectedModelisGoogle")
+      return google('models/gemini-2.5-flash');
+    }
+    if (typeof selectedModel === 'string' && selectedModel.startsWith('openrouter:')) {
+      console.log("selectedModelisDeepSeek")
+      const orModel = selectedModel.replace('openrouter:', '');
+      const apiKey = getOpenRouterKeyForModel(orModel);
+      console.log("apiKey:",apiKey)
+      if (!apiKey) {
+        console.warn('OpenRouter API key missing for model:', orModel, '— falling back to Google.');
+        return google('models/gemini-2.5-flash');
+      }
+      const openrouter = createOpenRouter({ apiKey });
+      return openrouter(orModel);
+    }
+    // Fallback
+    return google('models/gemini-2.5-flash');
+  })();
+
   try {
+    console.log("tryModelToUse",modelToUse)
     const result = await streamText({
-      model: google('models/gemini-2.5-flash'),
-      system: systemPrompt,
+      model: modelToUse,
+      // system: systemPrompt,
       temperature: 0.25,
       maxOutputTokens: 1500, // Reduced for faster generation
       messages: convertToModelMessages(messages.slice(-5)), // Reduced context
-    }, { signal: controller.signal });
+    });
 //     const model=openrouter('deepseek/deepseek-r1-0528:free')
     
 //     const result=await streamText({
@@ -114,7 +155,6 @@ export async function POST(req: Request) {
 //     })
     
     clearTimeout(timeoutId);
-    console.log("timetaken",timeoutId)
 
     let assistantResponse = '';
 

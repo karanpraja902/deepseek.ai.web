@@ -50,8 +50,9 @@ let id=params
   const [isUserInitialized, setIsUserInitialized] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
+  const [model, setModel] = useState('google');
 
-
+  console.log("model:",model);
   useEffect(() => {
     const initializeUser = async () => {
       try {
@@ -141,7 +142,9 @@ let id=params
       metadata: {
         ...message.metadata,
         chatId: chatId,
-      }
+        model
+      },
+      model
     };
     console.log("messageWithUser:",messageWithUser)
     await sendMessage(messageWithUser);
@@ -314,6 +317,8 @@ let id=params
             sendMessage={sendMessageWithUser}
             chatId={chatId}
             messages={messages}
+            setModel={setModel}
+            model={model}
           />
         )}
       </div>

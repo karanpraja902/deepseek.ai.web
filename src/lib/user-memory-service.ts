@@ -54,7 +54,7 @@ export class UserMemoryService {
    * Store user-specific conversation context
    */
   async storeUserConversationContext(userId: string, chatId: string, messages: any[]) {
-    console.log("storing user conversation context");
+    // console.log("storing user conversation context");
     try {
       const context = messages.map(msg => ({
         role: msg.role,
@@ -77,7 +77,7 @@ export class UserMemoryService {
         ],
         { user_id: userId, metadata: { key: `user_${userId}_chat_${chatId}` } }
       );
-      console.log("success")
+      // console.log("success")
     } catch (error) {
       console.error('Failed to store user conversation context:', error);
     }

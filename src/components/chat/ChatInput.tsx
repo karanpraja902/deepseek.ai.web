@@ -14,6 +14,8 @@ interface ChatInputProps {
   sendMessage: (message: { text?: string; parts?: any[]; metadata: { chatId: string } }) => void;
   chatId: string;
   messages: any[];
+  model: string;
+  setModel: (model: string) => void;
 }
 
 export default function ChatInput({
@@ -25,7 +27,9 @@ export default function ChatInput({
   onStop,
   sendMessage,
   chatId,
-  messages
+  messages,
+  model,
+  setModel
 }: ChatInputProps) {
   const [preFile,setPreFile]=useState<File[]>([]);
   const [isUploading,setIsUploading]=useState<Boolean>(false)
@@ -49,6 +53,20 @@ export default function ChatInput({
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [showTools]);
+
+  // Model dropdown state and outside-click handler
+const [showModelMenu, setShowModelMenu] = useState(false);
+  const modelMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showModelMenu) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (modelMenuRef.current && !modelMenuRef.current.contains(e.target as Node)) {
+        setShowModelMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [showModelMenu]);
 
   // Handle transcript from dictation
   const handleTranscript = (transcript: string) => {
@@ -178,6 +196,18 @@ return;
     setShowTools(false);
   };
 
+  const modelOptions = [
+    { value: 'google', label: 'Google Gen AI ' },
+    { value: 'openrouter:deepseek/deepseek-r1-0528:free', label: 'DeepSeek R1' },
+    { value: 'openrouter:nvidia/llama-3.1-nemotron-ultra-253b-v1:free', label: 'Llama 3.1' },
+    { value: 'openrouter:openai/gpt-oss-20b:free', label: 'GPT-Oss-20b' },
+
+  ];
+
+
+  console.log("ChatInputModel:",model)
+  const selectedModelLabel = modelOptions.find(m => m.value === model)?.label || 'Google Gen AI (default)';
+
 
   return (
     <div className={`sticky bottom-0 bg-gradient-to-b from-transparent to-white/50 pb-4`}>
@@ -297,6 +327,35 @@ return;
             )}
           </div>
           
+          {/* Model selector */}
+          <div className="flex relative justify-center" ref={modelMenuRef}>
+            <button
+              type="button"
+              onClick={() => setShowModelMenu(v => !v)}
+              className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg hover:text-blue-600 hover:border-blue-300 transition-colors relative group/tooltip"
+              title="Model"
+            >
+              Model
+            </button>
+            {showModelMenu && (
+              <div className="absolute bottom-full right-0 mb-2 w-72 bg-white rounded-xl border border-gray-200 shadow-lg p-2 z-20">
+                <div className="p-2 text-xs text-gray-500">Current: {selectedModelLabel}</div>
+                <div className="flex flex-col">
+                  {modelOptions.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setModel(opt.value); setShowModelMenu(false); }}
+                      className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 ${model === opt.value ? 'bg-blue-50 text-blue-700' : ''}`}
+                    >
+                      <span className="flex items-center gap-2"><Wrench className="w-4 h-4" />{opt.label}</span>
+                      {model === opt.value && <span className="text-xs">Selected</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* File input button */}
           <button
             type="button"

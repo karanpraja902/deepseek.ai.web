@@ -93,7 +93,7 @@ if(preview){
             <div className="border-2 border-gray-200 rounded-lg p-2 bg-white shadow-sm">
               <div className="text-center">
                 <h2 className="text-xl  text-gray-900 ">
-                  {/* {getConversationTitle(messages)} */}abcd
+                  {/* {getConversationTitle(messages)} */}
                 </h2>
               </div>
             </div>
@@ -150,8 +150,7 @@ if(preview){
           <p className="text-gray-500 mb-6">We couldn&apos;t process your request. Please try again.</p>
           <button
             onClick={onRegenerate}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 mx-auto"
-          >
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 mx-auto">
             <RefreshCw className="w-4 h-4" />
             Regenerate Response
           </button>
@@ -287,11 +286,7 @@ if(preview){
 				</ReactMarkdown>
 			</div>
 		);
-  }
-
-}
-)
-}
+  }})}
                     </div>
                   )}
                   </div>
@@ -310,7 +305,7 @@ if(preview){
             </div>
             <span className="text-blue-800 font-medium">
               {status === 'submitted' ? 'Processing your request...' : 'Generating response...'}
-            </span>
+           </span>
           </div>
         </div>
       )}
