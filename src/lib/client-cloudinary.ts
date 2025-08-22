@@ -1,3 +1,6 @@
+import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+
 export type UploadedClientFile = {
 	url: string;
 	mediaType: string;
@@ -5,6 +8,12 @@ export type UploadedClientFile = {
 	width?: number;
 	height?: number;
 	publicId?: string;
+	// Add PDF analysis data
+	pdfAnalysis?: {
+		summary: string;
+		content: string;
+		pageCount: number;
+	};
 };
 
 export async function uploadFilesClient(
@@ -33,7 +42,7 @@ export async function uploadFilesClient(
 		}
 
 		const data = await res.json();
-		return {
+		const uploadedFile: UploadedClientFile = {
 			url: data.secure_url as string,
 			mediaType: file.type || 'application/octet-stream',
 			filename: file.name,
@@ -41,6 +50,14 @@ export async function uploadFilesClient(
 			height: data.height,
 			publicId: data.public_id,
 		};
+
+		// If it's a PDF, just mark it for later analysis
+		if (file.type === 'application/pdf') {
+			console.log('📄 PDF uploaded, will analyze when message is sent');
+			// No analysis here - just upload the file
+		}
+
+		return uploadedFile;
 	});
 
 	return Promise.all(uploads);
@@ -71,4 +88,55 @@ export async function deleteFileFromCloudinary(publicId: string): Promise<boolea
 		console.error('Error calling Cloudinary delete API:', error);
 		return false;
 	}
+}
+
+export interface PDFAnalysisResult {
+  summary: string;
+  content: string;
+  pageCount: number;
+  filename: string;
+}
+
+export async function analyzePDFFromUrl(url: string, filename: string): Promise<PDFAnalysisResult> {
+  try {
+    // Download the PDF from Cloudinary
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to download PDF: ${response.statusText}`);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    // Create a temporary blob for the PDFLoader
+    const blob = new Blob([buffer], { type: 'application/pdf' });
+    
+    // Load PDF using langchain
+    const loader = new PDFLoader(blob);
+    const docs = await loader.load();
+    
+    // Combine all page content
+    const fullContent = docs.map(doc => doc.pageContent).join('\n\n');
+    
+    // Split content for better processing
+    const textSplitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 1000,
+      chunkOverlap: 200,
+    });
+    
+    const chunks = await textSplitter.splitText(fullContent);
+    
+    // Generate a summary (taking first few chunks as a basic summary)
+    const summary = chunks.slice(0, 3).join('\n\n');
+    
+    return {
+      summary: summary.length > 500 ? summary.substring(0, 500) + '...' : summary,
+      content: fullContent,
+      pageCount: docs.length,
+      filename
+    };
+  } catch (error) {
+    console.error('Error analyzing PDF:', error);
+    throw new Error(`Failed to analyze PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }

@@ -1,6 +1,6 @@
 'use client';
 import React, { useRef, useEffect, useState } from 'react';
-import { Loader2, RefreshCw, Copy, Check, Edit,X } from 'lucide-react';
+import { Loader2, RefreshCw, Copy, Check, Edit, X, FileText, Download, Eye } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -28,7 +28,7 @@ export default function ChatContainer({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
-const [preview, setPreview] = useState<{ url: string; filename?: string } | null>(null);
+  const [preview, setPreview] = useState<{ url: string; filename?: string; type?: string } | null>(null);
   
   // console.log("chatContainerMessage:",messages)
   useEffect(() => {
@@ -103,6 +103,23 @@ const [preview, setPreview] = useState<{ url: string; filename?: string } | null
     }
   };
 
+  // Helper function to determine if a file is a document
+  const isDocument = (mediaType: string) => {
+    return mediaType === 'application/pdf' || 
+           mediaType.includes('document') || 
+           mediaType.includes('text/') ||
+           mediaType.includes('application/msword') ||
+           mediaType.includes('application/vnd.openxmlformats-officedocument');
+  };
+
+  // Helper function to get file icon based on type
+  const getFileIcon = (mediaType: string, filename: string) => {
+    if (mediaType === 'application/pdf' || filename.toLowerCase().endsWith('.pdf')) {
+      return <FileText className="w-5 h-5 text-red-600" />;
+    }
+    return <FileText className="w-5 h-5 text-blue-600" />;
+  };
+
 // console.log("ContainerMessage:",messages)
 if(preview){
   return(
@@ -132,11 +149,30 @@ if(preview){
           >
             <X className="w-5 h-5" />
           </button>
-          <img
-            src={preview.url}
-            alt={preview.filename || 'Preview'}
-            className="max-w-[90vw] max-h-[80vh] rounded shadow-lg"
-          />
+          {preview.type === 'image' ? (
+            <img
+              src={preview.url}
+              alt={preview.filename || 'Preview'}
+              className="max-w-[90vw] max-h-[80vh] rounded shadow-lg"
+            />
+          ) : (
+            <div className="bg-white rounded-lg p-6 max-w-2xl">
+              <div className="text-center">
+                <FileText className="w-16 h-16 mx-auto mb-4 text-blue-600" />
+                <h3 className="text-lg font-semibold mb-2">{preview.filename}</h3>
+                <p className="text-gray-600 mb-4">Document preview not available</p>
+                <a
+                  href={preview.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Download & View
+                </a>
+              </div>
+            </div>
+          )}
           {preview.filename && (
             <div className="mt-2 text-center text-white text-sm">{preview.filename}</div>
           )}
@@ -254,32 +290,80 @@ if(preview){
                   
                   <div className='flex flex-col'>
                   
-                  <div>
-
-{message.parts.map((part: any, index: number) => {
-  if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
-    return (
-      <div key={part.index ?? `${message.id}-img-${index}`} className="relative group">
-        <button
-          type="button"
-          onClick={() => setPreview({ url: part.url, filename: part.filename })}
-          className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:bg-gray-50"
-          title="Click to preview"
-        >
-          <img
-            src={part.url}
-            alt={part.filename || 'Image'}
-            className="w-5 h-5 object-cover rounded border"
-          />
-          <div className="text-sm text-gray-600 truncate max-w-[160px]">
-            {part.filename}
-          </div>
-        </button>
-      </div>
-    );
-  }
-})}
+                  <div className="space-y-2">
+                    {/* Render file attachments */}
+                    {message.parts.map((part: any, index: number) => {
+                      if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
+                        return (
+                          <div key={part.index ?? `${message.id}-img-${index}`} className="relative group">
+                            <button
+                              type="button"
+                              onClick={() => setPreview({ url: part.url, filename: part.filename, type: 'image' })}
+                              className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:bg-gray-50"
+                              title="Click to preview"
+                            >
+                              <img
+                                src={part.url}
+                                alt={part.filename || 'Image'}
+                                className="w-5 h-5 object-cover rounded border"
+                              />
+                              <div className="text-sm text-gray-600 truncate max-w-[160px]">
+                                {part.filename}
+                              </div>
+                            </button>
+                          </div>
+                        );
+                      }
+                      
+                      // Handle document files
+                      if (part.type === 'file' && isDocument(part.mediaType)) {
+                        return (
+                          <div key={part.index ?? `${message.id}-doc-${index}`} className="relative group">
+                            <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              {getFileIcon(part.mediaType, part.filename)}
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-900 truncate">
+                                  {part.filename}
+                                </div>
+                                {part.pdfAnalysis && (
+                                  <div className="text-xs text-gray-500">
+                                    {part.pdfAnalysis.pageCount} pages • PDF analyzed
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setPreview({ url: part.url, filename: part.filename, type: 'document' })}
+                                  className="p-1.5 bg-white border border-gray-200 rounded hover:bg-gray-50 transition-colors"
+                                  title="View document"
+                                >
+                                  <Eye className="w-4 h-4 text-gray-600" />
+                                </button>
+                                <a
+                                  href={part.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 bg-white border border-gray-200 rounded hover:bg-gray-50 transition-colors"
+                                  title="Download document"
+                                >
+                                  <Download className="w-4 h-4 text-gray-600" />
+                                </a>
+                              </div>
+                            </div>
+                            {part.pdfAnalysis && (
+                              <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded text-xs text-gray-600">
+                                <strong>Summary:</strong> {part.pdfAnalysis.summary}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      
+                      return null;
+                    })}
                   </div>
+                  
                   {editingId === message.id && message.role === 'user' ? (
                     <div className="space-y-2">
                       <textarea

@@ -12,6 +12,8 @@ export class StreamHandlerService {
     userId: string
   ) {
     let assistantResponse = '';
+    let lastSaveLength = 0;
+    const SAVE_THRESHOLD = 500; // Save every 500 chars instead of 100
 
     return result.toUIMessageStreamResponse({
       messageMetadata: async ({ part }: any) => {
@@ -22,48 +24,51 @@ export class StreamHandlerService {
         }
 
         if (part.type === 'finish') {
-          // Format the final aggregated text before saving
-          assistantResponse = MessageHandlerService.formatResponseStructure(assistantResponse);
+          // Enhanced formatting for better response structure
+          assistantResponse = MessageHandlerService.formatDocumentResponse(assistantResponse);
           
           if (chatId && assistantResponse.trim()) {
-            // Optimized: Non-blocking saves
-            setImmediate(async () => {
-              try {
-                await Promise.all([
-                  ChatService.addMessage(chatId, {
-                    role: 'assistant',
-                    content: assistantResponse,
-                  }, userId),
-                  MemoryService.addMemory(
-                    [{ role: 'assistant', content: assistantResponse }], 
-                    userId,
-                    { 
-                      type: 'assistant_message', 
-                      chatId, 
-                      timestamp: new Date().toISOString() 
-                    }
-                  )
-                ]);
-              } catch (error) {
-                console.error('Failed to save assistant message:', error);
-              }
-            });
+            // Final save - ensure complete response is saved
+            try {
+              await Promise.all([
+                ChatService.addMessage(chatId, {
+                  role: 'assistant',
+                  content: assistantResponse,
+                }, userId),
+                MemoryService.addMemory(
+                  [{ role: 'assistant', content: assistantResponse }], 
+                  userId,
+                  { 
+                    type: 'assistant_message', 
+                    chatId, 
+                    timestamp: new Date().toISOString() 
+                  }
+                )
+              ]);
+              console.log('✅ Complete formatted response saved:', assistantResponse.length, 'characters');
+            } catch (error) {
+              console.error('Failed to save complete assistant message:', error);
+            }
           }
-          return { totalTokens: part.totalUsage.totalTokens };
+          return { totalTokens: part.totalUsage?.totalTokens || 0 };
         }
         
         if (part.type === 'text-delta') {
           assistantResponse += (part as any).text ?? '';
           
-          // Save in chunks every 100 characters
-          if (assistantResponse.length % 100 === 0) {
-            // Save partial response asynchronously
+          // Reduced frequency saves - only save significant chunks
+          const currentLength = assistantResponse.length;
+          if (currentLength - lastSaveLength >= SAVE_THRESHOLD) {
+            lastSaveLength = currentLength;
+            
+            // Non-blocking partial save (don't await)
             setImmediate(async () => {
               try {
                 await ChatService.addMessage(chatId, {
                   role: 'assistant',
                   content: assistantResponse,
                 }, userId);
+                console.log('💾 Partial save:', currentLength, 'characters');
               } catch (error) {
                 console.error('Failed to save partial message:', error);
               }
@@ -77,7 +82,7 @@ export class StreamHandlerService {
   /**
    * Create timeout controller
    */
-  static createTimeoutController(timeoutMs: number = 25000) {
+  static createTimeoutController(timeoutMs: number = 30000) { // Increased timeout for complete responses
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     

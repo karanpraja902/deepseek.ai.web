@@ -38,13 +38,17 @@ export default function ChatInput({
   
   const [Error,setError]=useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [uploadedFileMetadata, setUploadedFileMetadata] = useState<UploadedClientFile[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
 
   // Tools dropdown state and outside-click handler
   const [showTools, setShowTools] = useState(false);
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
+  const [documentMode, setDocumentMode] = useState(false);
   const toolsMenuRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
     if (!showTools) return;
     const onDocClick = (e: MouseEvent) => {
@@ -70,6 +74,19 @@ const [showModelMenu, setShowModelMenu] = useState(false);
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [showModelMenu]);
 
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      // Reset height to auto to get the correct scrollHeight
+      textarea.style.height = 'auto';
+      
+      // Calculate the new height based on content
+      const newHeight = Math.min(Math.max(textarea.scrollHeight, 48), 200); // Min 48px, Max 200px
+      textarea.style.height = `${newHeight}px`;
+    }
+  }, [input]);
+
   // Handle transcript from dictation
   const handleTranscript = (transcript: string) => {
     setInput(input + transcript);
@@ -79,7 +96,6 @@ const [showModelMenu, setShowModelMenu] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    // console.log("local file:",Array.from(e.target.files))
     if (e.target.files) {
       setPreFile(Array.from(e.target.files))
       try{
@@ -93,13 +109,43 @@ const [showModelMenu, setShowModelMenu] = useState(false);
         return;
       }
     }catch(error){
-setError("Failed to upload image")
+setError("Failed to upload file")
+setIsUploading(false)
 return;
       }
       console.log("ChatInputFiles:",e.target.files)
       return;
     }
 
+  };
+
+  const handleDocumentChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setPreFile(Array.from(e.target.files))
+      try{
+        setIsUploading(true)
+        const upload = await uploadFilesClient(Array.from(e.target.files))|| [];
+        if(upload){
+          setUploadedFileMetadata(upload)
+          setUploadedFiles(upload);
+          console.log("uploaded document:",upload)
+          
+          // Remove this section - don't add summary to input immediately
+          // const pdfFile = upload.find(f => f.pdfAnalysis);
+          // if (pdfFile?.pdfAnalysis) {
+          //   const summaryText = `Document Summary...`;
+          //   setInput(input ? input + '\n' + summaryText : summaryText);
+          // }
+          
+          setIsUploading(false)
+          return;
+        }
+      }catch(error){
+        setError("Failed to upload document")
+        setIsUploading(false)
+        return;
+      }
+    }
   };
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -110,11 +156,10 @@ return;
       }
     }
   };
+  
   if(preFile?.[0]){
   console.log("prefile:",preFile?.[0].name)
   }
-
-
 
   const removeFile = async (index: number) => {
     // Get the metadata for the file being removed
@@ -132,7 +177,6 @@ return;
           setIsDeleting(false)
         } else {
           console.error(`Failed to delete file with publicId: ${fileMetadata.publicId}`);
-          
           setIsDeleting(false)
         }
       } catch (error) {
@@ -152,6 +196,11 @@ return;
     console.log("newfiles:", newFiles);
     setUploadedFiles(newFiles);
     console.log("newFiles:", newFiles);
+    
+    // Reset document mode if no files left
+    if (newFiles.length === 0) {
+      setDocumentMode(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -164,13 +213,14 @@ return;
         url: f.url,
         mediaType: f.mediaType,
         filename: f.filename,
+        pdfAnalysis: f.pdfAnalysis, // Include PDF analysis in the message
       }));
 
               sendMessage({
           parts: [...textPart, ...fileParts],
           metadata: { 
             chatId,
-            enableWebSearch: webSearchEnabled,
+            enableWebSearch: webSearchEnabled && !documentMode, // Disable web search in document mode
             model
           },
         });
@@ -179,33 +229,53 @@ return;
       setInput('');
       setPreFile([]);
       setUploadedFiles([]);
+      setDocumentMode(false); // Reset document mode after sending
     }
   };
 
   // Tools selection helper
   const handleToolSelect = (key: string) => {
     if (key === 'web') {
-      setWebSearchEnabled(!webSearchEnabled);
+      if (!documentMode) { // Only allow web search if not in document mode
+        setWebSearchEnabled(!webSearchEnabled);
+      }
       setShowTools(false);
       return;
     }
     
     const prompts: Record<string, string> = {
       code: 'Write code for: ',
-      doc: 'Summarize this document: ',
+      doc: 'Analyze this document: ',
       csv: 'Analyze this CSV: ',
       weather: 'Weather in ',
       research: 'Deep research on: '
     };
     
     if (key === 'image') {
+      if (!documentMode) { // Only allow image upload if not in document mode
+        setShowTools(false);
+        fileInputRef.current?.click();
+      }
+      return;
+    }
+
+    if (key === 'doc') {
+      if(!preFile.length&&documentMode)
+{
+  console.log("documentMode:",documentMode)
+  setDocumentMode(false);
+  return;
+}      setDocumentMode(true);
+      setWebSearchEnabled(false); // Disable web search when document mode is enabled
       setShowTools(false);
-      fileInputRef.current?.click();
+      documentInputRef.current?.click();
       return;
     }
     
-    const p = prompts[key] ?? '';
-    setInput(input ? input + '\n' + p : p);
+    if (!documentMode) { // Only add prompts if not in document mode
+      const p = prompts[key] ?? '';
+      setInput(input ? input + '\n' + p : p);
+    }
     setShowTools(false);
   };
 
@@ -214,13 +284,10 @@ return;
     { value: 'openrouter:deepseek/deepseek-r1-0528:free', label: 'DeepSeek R1' },
     { value: 'openrouter:nvidia/llama-3.1-nemotron-ultra-253b-v1:free', label: 'Llama 3.1' },
     { value: 'openrouter:openai/gpt-oss-20b:free', label: 'GPT-Oss-20b' },
-
   ];
-
 
   console.log("ChatInputModel:",model)
   const selectedModelLabel = modelOptions.find(m => m.value === model)?.label || 'Google Gen AI (default)';
-
 
   return (
     <div className={`sticky bottom-0 bg-gradient-to-b from-transparent to-white/50 pb-4`}>
@@ -232,6 +299,9 @@ return;
               {preFile.map((file, index) => (
                 <div key={index} className="relative group">
                   <div className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200">
+                    {file.type === 'application/pdf' && (
+                      <FileText className="w-4 h-4 text-red-600" />
+                    )}
                     <div className="text-sm text-gray-600 truncate max-w-[120px]">
                       {file.name}
                     </div>
@@ -261,12 +331,12 @@ return;
                     </div>)}
                     {
                       isUploading&&(<div className='flex items-center bg-white rounded border '>
-                    <p className='ml-2 text-gray-500 '>Uploading Image</p>
+                    <p className='ml-2 text-gray-500 '>{file.type === 'application/pdf' ? 'Processing Document...' : 'Uploading Image'}</p>
                     </div>)
                     }
                     {
                       isDeleting&&(<div className='flex items-center bg-white rounded border '>
-                    <p className='ml-2 text-gray-500 '>Removing Image</p>
+                    <p className='ml-2 text-gray-500 '>Removing {file.type === 'application/pdf' ? 'Document' : 'Image'}</p>
                     </div>)
                     }
                 </div>
@@ -286,17 +356,27 @@ return;
         <div className={`flex gap-3 p-2 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border transition-all duration-300 ${
           isRecording 
             ? 'border-red-300 bg-red-50/80' 
+            : documentMode 
+            ? 'border-blue-300 bg-blue-50/80'
             : 'border-white/20'
         }`}>
-          {/* Text input (textarea to support Shift+Enter newline) */}
+          {/* Auto-expanding text input */}
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={status !== 'ready'}
-            placeholder={isRecording ? "Listening... Speak now..." : "Ask me anything..."}
+            placeholder={
+              isRecording 
+                ? "Listening... Speak now..." 
+                : documentMode 
+                ? "Ask about your document..." 
+                : "Ask me anything..."
+            }
+            className="flex-1 px-4 py-3 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-lg disabled:opacity-50 resize-none overflow-hidden max-h-[200px] min-h-[48px]"
+            // style={{ height: '48px' }} // Initial height
             rows={1}
-            className="flex-1 px-4 py-3 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-lg disabled:opacity-50 resize-none"
           />
           <div className="flex relative justify-center" ref={toolsMenuRef}>
             <button
@@ -305,9 +385,15 @@ return;
               className="p-2 text-gray-500 hover:text-blue-600 transition-colors relative group/tooltip"
               title="Tools"
             >
-              {webSearchEnabled ? <Globe className="w-5 h-5" /> : <SlidersHorizontal className="w-5 h-5" />}
+              {documentMode ? (
+                <FileText className="w-5 h-5 text-blue-600" />
+              ) : webSearchEnabled ? (
+                <Globe className="w-5 h-5" />
+              ) : (
+                <SlidersHorizontal className="w-5 h-5" />
+              )}
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                Tools
+                {documentMode ? 'Document Mode' : 'Tools'}
               </div>
             </button>
             
@@ -316,34 +402,58 @@ return;
                 <div className="flex flex-col">
                   <button 
                     onClick={() => handleToolSelect('web')} 
-                    className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                      webSearchEnabled 
-                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
-                        : 'hover:bg-gray-50'
+                    disabled={documentMode}
+                    className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                      documentMode
+                        ? 'opacity-50 cursor-not-allowed text-gray-400'
+                        : webSearchEnabled 
+                        ? 'bg-blue-200 text-blue-700 hover:bg-blue-200' 
+                        : 'hover:bg-blue-100'
                     }`}
                   >
                     <span className="flex items-center gap-2">
                       <Globe className="w-4 h-4" />
                       Web Search
-                      {webSearchEnabled && <span className="text-xs font-medium">(ON)</span>}
+                      {webSearchEnabled && !documentMode && <span className="text-xs font-medium">(ON)</span>}
                     </span>
                   </button>
-                  <button onClick={() => handleToolSelect('image')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
-                    <span className="flex items-center gap-2"><ImageIcon className="w-4 h-4" />Image</span>
+               
+                  
+                  <button 
+                    onClick={() => handleToolSelect('doc')} 
+                    className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                      documentMode 
+                        ? 'bg-blue-200 text-blue-700 hover:bg-blue-200' 
+                        : 'hover:bg-blue-100'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Document
+                      {documentMode && <span className="text-xs font-medium">(ON)</span>}
+                    </span>
                   </button>
-                  <button onClick={() => handleToolSelect('code')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
-                    <span className="flex items-center gap-2"><Code2 className="w-4 h-4" />Code</span>
-                  </button>
-                  <button onClick={() => handleToolSelect('doc')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
-                    <span className="flex items-center gap-2"><FileText className="w-4 h-4" />Document</span>
-                  </button>
-                  <button onClick={() => handleToolSelect('csv')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
-                    <span className="flex items-center gap-2"><Table className="w-4 h-4" />CSV</span>
-                  </button>
-                  <button onClick={() => handleToolSelect('weather')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
+               
+                  <button 
+                    onClick={() => handleToolSelect('weather')} 
+                    disabled={documentMode}
+                    className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                      documentMode 
+                        ? 'opacity-50 cursor-not-allowed text-gray-400' 
+                        : 'hover:bg-blue-100'
+                    }`}
+                  >
                     <span className="flex items-center gap-2"><CloudSun className="w-4 h-4" />Weather</span>
                   </button>
-                  <button onClick={() => handleToolSelect('research')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
+                  <button 
+                    onClick={() => handleToolSelect('research')} 
+                    disabled={documentMode}
+                    className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                      documentMode 
+                        ? 'opacity-50 cursor-not-allowed text-gray-400' 
+                        : 'hover:bg-blue-100'
+                    }`}
+                  >
                     <span className="flex items-center gap-2"><FlaskConical className="w-4 h-4" />Deep Research</span>
                   </button>
                 </div>
@@ -384,17 +494,28 @@ return;
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={webSearchEnabled}
+            disabled={webSearchEnabled || documentMode}
             className={`p-2 transition-colors relative group/tooltip ${
-              webSearchEnabled 
+              webSearchEnabled || documentMode
                 ? 'text-gray-300 cursor-not-allowed' 
                 : 'text-gray-500 hover:text-blue-600'
             }`}
-            title={webSearchEnabled ? "File upload disabled when web search is enabled" : "Attach files"}
+            title={
+              documentMode 
+                ? "Image upload disabled in document mode"
+                : webSearchEnabled 
+                ? "File upload disabled when web search is enabled" 
+                : "Attach files"
+            }
           >
             <Paperclip className="w-5 h-5" />
             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-              {webSearchEnabled ? "File upload disabled when web search is enabled" : "Attach Files"}
+              {documentMode 
+                ? "Image upload disabled in document mode"
+                : webSearchEnabled 
+                ? "File upload disabled when web search is enabled" 
+                : "Attach Files"
+              }
             </div>
             <input
               type="file"
@@ -405,6 +526,15 @@ return;
               accept="image/*"
             />
           </button>
+
+          {/* Hidden document input */}
+          <input
+            type="file"
+            ref={documentInputRef}
+            onChange={handleDocumentChange}
+            className="hidden"
+            accept="application/pdf,.pdf,.doc,.docx,.txt"
+          />
           
           {/* Dictation button */}
           <DictationButton
