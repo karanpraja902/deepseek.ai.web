@@ -1,8 +1,9 @@
 'use client';
-import { uploadFilesClient, deleteFileFromCloudinary, UploadedClientFile } from '@/lib/client-cloudinary';
-import { useRef, useState, useEffect } from 'react';
-import { Paperclip, X, StopCircle, Loader2, Globe, Image as ImageIcon, Code2, FileText, Table, CloudSun, FlaskConical, Wrench, SlidersHorizontal } from 'lucide-react';
+import { uploadFilesClient, deleteFileFromCloudinary, UploadedClientFile } from '../../lib/client-cloudinary';
+import React, { useRef, useState, useEffect } from 'react';
+import { Paperclip, X, StopCircle, Loader2, Globe, Image as ImageIcon, Code2, FileText, Table, CloudSun, FlaskConical, Wrench, SlidersHorizontal, Settings, Search } from 'lucide-react';
 import DictationButton from '../ui/DictationButton';
+import { LuCpu } from "react-icons/lu"
 
 interface ChatInputProps {
   input: string;
@@ -11,7 +12,7 @@ interface ChatInputProps {
   setUploadedFiles: (files: UploadedClientFile[]) => void;
   status: string;
   onStop: () => void;
-  sendMessage: (message: { text?: string; parts?: any[]; metadata: { chatId: string } }) => void;
+  sendMessage: (message: { text?: string; parts?: any[]; metadata: { chatId: string; enableWebSearch?: boolean; model?: string } }) => void;
   chatId: string;
   messages: any[];
   model: string;
@@ -42,6 +43,7 @@ export default function ChatInput({
 
   // Tools dropdown state and outside-click handler
   const [showTools, setShowTools] = useState(false);
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const toolsMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!showTools) return;
@@ -164,10 +166,14 @@ return;
         filename: f.filename,
       }));
 
-      sendMessage({
-        parts: [...textPart, ...fileParts],
-        metadata: { chatId },
-      });
+              sendMessage({
+          parts: [...textPart, ...fileParts],
+          metadata: { 
+            chatId,
+            enableWebSearch: webSearchEnabled,
+            model
+          },
+        });
       console.log("message:",messages)
 
       setInput('');
@@ -178,19 +184,26 @@ return;
 
   // Tools selection helper
   const handleToolSelect = (key: string) => {
+    if (key === 'web') {
+      setWebSearchEnabled(!webSearchEnabled);
+      setShowTools(false);
+      return;
+    }
+    
     const prompts: Record<string, string> = {
-      web: 'Search the web for: ',
       code: 'Write code for: ',
       doc: 'Summarize this document: ',
       csv: 'Analyze this CSV: ',
       weather: 'Weather in ',
       research: 'Deep research on: '
     };
+    
     if (key === 'image') {
       setShowTools(false);
       fileInputRef.current?.click();
       return;
     }
+    
     const p = prompts[key] ?? '';
     setInput(input ? input + '\n' + p : p);
     setShowTools(false);
@@ -292,7 +305,7 @@ return;
               className="p-2 text-gray-500 hover:text-blue-600 transition-colors relative group/tooltip"
               title="Tools"
             >
-              <SlidersHorizontal className="w-5 h-5" />
+              {webSearchEnabled ? <Globe className="w-5 h-5" /> : <SlidersHorizontal className="w-5 h-5" />}
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
                 Tools
               </div>
@@ -301,8 +314,19 @@ return;
             {showTools && (
               <div className="absolute bottom-full right-0 mb-2 w-64 bg-white rounded-xl border border-gray-200 shadow-lg p-2 z-20">
                 <div className="flex flex-col">
-                  <button onClick={() => handleToolSelect('web')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
-                    <span className="flex items-center gap-2"><Globe className="w-4 h-4" />Web Search</span>
+                  <button 
+                    onClick={() => handleToolSelect('web')} 
+                    className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                      webSearchEnabled 
+                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Globe className="w-4 h-4" />
+                      Web Search
+                      {webSearchEnabled && <span className="text-xs font-medium">(ON)</span>}
+                    </span>
                   </button>
                   <button onClick={() => handleToolSelect('image')} className="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
                     <span className="flex items-center gap-2"><ImageIcon className="w-4 h-4" />Image</span>
@@ -339,15 +363,15 @@ return;
             </button>
             {showModelMenu && (
               <div className="absolute bottom-full right-0 mb-2 w-72 bg-white rounded-xl border border-gray-200 shadow-lg p-2 z-20">
-                <div className="p-2 text-xs text-gray-500">Current: {selectedModelLabel}</div>
+                <div className="p-2 text-xs text-gray-700">Current: {selectedModelLabel}</div>
                 <div className="flex flex-col">
                   {modelOptions.map(opt => (
                     <button
                       key={opt.value}
                       onClick={() => { setModel(opt.value); setShowModelMenu(false); }}
-                      className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 ${model === opt.value ? 'bg-blue-50 text-blue-700' : ''}`}
+                      className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-200 text-gray-500 ${model === opt.value ? 'bg-blue-100 text-blue-100' : ''}`}
                     >
-                      <span className="flex items-center gap-2"><Wrench className="w-4 h-4" />{opt.label}</span>
+                      <span className="flex items-center gap-2"><LuCpu className="w-4 h-4" />{opt.label}</span>
                       {model === opt.value && <span className="text-xs">Selected</span>}
                     </button>
                   ))}
@@ -360,12 +384,17 @@ return;
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-2 text-gray-500 hover:text-blue-600 transition-colors relative group/tooltip"
-            title="Attach files"
+            disabled={webSearchEnabled}
+            className={`p-2 transition-colors relative group/tooltip ${
+              webSearchEnabled 
+                ? 'text-gray-300 cursor-not-allowed' 
+                : 'text-gray-500 hover:text-blue-600'
+            }`}
+            title={webSearchEnabled ? "File upload disabled when web search is enabled" : "Attach files"}
           >
             <Paperclip className="w-5 h-5" />
             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-              Attach Files
+              {webSearchEnabled ? "File upload disabled when web search is enabled" : "Attach Files"}
             </div>
             <input
               type="file"

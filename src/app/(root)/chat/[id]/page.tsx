@@ -51,8 +51,20 @@ let id=params
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [model, setModel] = useState('google');
+  const [localError, setLocalError] = useState<any>(null);
 
   console.log("model:",model);
+  
+  // Update local error when useChat error changes
+  useEffect(() => {
+    setLocalError(error);
+  }, [error]);
+
+  // Function to clear error
+  const clearError = () => {
+    setLocalError(null);
+  };
+
   useEffect(() => {
     const initializeUser = async () => {
       try {
@@ -298,15 +310,17 @@ let id=params
             <ChatContainer
               messages={messages}
               status={status}
-              error={error}
+              error={localError}
               onRegenerate={regenerate}
               setMessages={setMessages}
+              currentModel={model}
+              onClearError={clearError}
             />
           
         )}
 
         {/* Input Form - Always fixed at bottom */}
-        {!error && (
+        {!localError && (
           <ChatInput
             input={input}
             setInput={setInput}

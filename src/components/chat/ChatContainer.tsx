@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Loader2, RefreshCw, Copy, Check, Edit,X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -10,6 +10,8 @@ interface ChatContainerProps {
   error: any;
   onRegenerate: () => void;
   setMessages: (messages: any[]) => void;
+  currentModel?: string;
+  onClearError?: () => void;
 }
 
 export default function ChatContainer({
@@ -18,6 +20,8 @@ export default function ChatContainer({
   error,
   onRegenerate,
   setMessages,
+  currentModel,
+  onClearError,
 }: ChatContainerProps) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -80,6 +84,25 @@ const [preview, setPreview] = useState<{ url: string; filename?: string } | null
       console.error('Failed to copy text: ', err);
     }
   };
+
+  // Helper function to get model display name
+  const getModelDisplayName = (model: string) => {
+    const modelMap: Record<string, string> = {
+      'google': 'Google Gen AI',
+      'openrouter:deepseek/deepseek-r1-0528:free': 'DeepSeek R1',
+      'openrouter:nvidia/llama-3.1-nemotron-ultra-253b-v1:free': 'Llama 3.1',
+      'openrouter:openai/gpt-oss-20b:free': 'GPT-Oss-20b'
+    };
+    return modelMap[model] || model;
+  };
+
+  // Handle clearing error and staying on same chat
+  const handleClearError = () => {
+    if (onClearError) {
+      onClearError();
+    }
+  };
+
 // console.log("ContainerMessage:",messages)
 if(preview){
   return(
@@ -146,13 +169,19 @@ if(preview){
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">Something went wrong</h3>
-          <p className="text-gray-500 mb-6">We couldn&apos;t process your request. Please try again.</p>
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">Model Error</h3>
+          <p className="text-gray-500 mb-4">
+            {currentModel ? 
+              `The ${getModelDisplayName(currentModel)} model is currently unable to generate a response.` : 
+              'The selected model is currently unable to generate a response.'
+            }
+          </p>
+          <p className="text-gray-500 mb-6">Please select another model and try again.</p>
           <button
-            onClick={onRegenerate}
+            onClick={handleClearError}
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 mx-auto">
             <RefreshCw className="w-4 h-4" />
-            Regenerate Response
+            Try Again
           </button>
         </div>
       ) : (
@@ -258,7 +287,7 @@ if(preview){
                         onChange={(e) => setEditText(e.target.value)}
                         className="w-full p-2 bg-white/90 text-gray-800 rounded-lg resize-none"
                         rows={3}
-                     />
+                      />
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleSaveEdit(message.id)}
@@ -305,7 +334,7 @@ if(preview){
             </div>
             <span className="text-blue-800 font-medium">
               {status === 'submitted' ? 'Processing your request...' : 'Generating response...'}
-           </span>
+            </span>
           </div>
         </div>
       )}
