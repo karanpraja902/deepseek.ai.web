@@ -1,14 +1,15 @@
 'use client';
+import React from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import ChatContainer from '../../../../components/chat/ChatContainer';
 import ChatInput from '../../../../components/chat/ChatInput';
 import { ChatApiService } from '../../../../services/api';
 import type { UploadedClientFile } from '../../../../lib/client-cloudinary';
 import { uploadFilesClient } from '../../../../lib/client-cloudinary';
-
+import { toast } from 'react-hot-toast';
 // Static user ID for the demo
 const STATIC_USER_ID = 'static_user_karan';
 
@@ -18,9 +19,15 @@ interface ChatPageClientProps {
 
 export default function ChatPage() {
   const params = useParams();
-  console.log("Params:",params)
-let id=params
+  console.log("Params:", params);
+  let id = params;
   const chatId = params.id as string;
+  
+  // Timer state variables
+  const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
+  const [responseTime, setResponseTime] = useState<number | null>(null);
+  const [isMeasuringResponse, setIsMeasuringResponse] = useState(false);
+  const responseTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const { 
     messages, 
@@ -37,9 +44,27 @@ let id=params
     experimental_throttle: 50,
     onError: error => {
       console.error('An error occurred:', error);
+      // Stop timer on error
+      if (isMeasuringResponse) {
+        clearResponseTimer();
+      }
     },
     onData: data => {
       console.log('Received data part from server:', data);
+      // If we're measuring response time and this is the first data chunk
+      if (isMeasuringResponse && responseStartTime) {
+        const endTime = Date.now();
+        const timeTaken = endTime - responseStartTime;
+        setResponseTime(timeTaken);
+        console.log(`Response time: ${timeTaken}ms`);
+        setIsMeasuringResponse(false);
+        
+        // Clear any existing timer
+        if (responseTimerRef.current) {
+          clearTimeout(responseTimerRef.current);
+          responseTimerRef.current = null;
+        }
+      }
     },    
   });
   
@@ -52,18 +77,74 @@ let id=params
   const [editedTitle, setEditedTitle] = useState('');
   const [model, setModel] = useState('google');
   const [localError, setLocalError] = useState<any>(null);
-
-  console.log("model:",model);
+  const [localStatus, setLocalStatus] = useState<any>(null);
+  console.log("model:", model);
   
-  // Update local error when useChat error changes
-  useEffect(() => {
-    setLocalError(error);
-  }, [error]);
-
+  // Function to clear response timer
+  const clearResponseTimer = () => {
+    if (responseTimerRef.current) {
+      clearTimeout(responseTimerRef.current);
+      responseTimerRef.current = null;
+    }
+    setIsMeasuringResponse(false);
+    setResponseStartTime(null);
+  };
+  
   // Function to clear error
   const clearError = () => {
     setLocalError(null);
   };
+  
+  // Add a ref to track if we've already shown the toast
+  const toastShownRef = useRef(false);
+
+  // Update local error when useChat error changes
+  useEffect(() => {
+    console.log("status:", status);
+    setLocalError(error);
+    setLocalStatus(status);
+    
+    // If status changes to "ready" and we're measuring response time
+    if (status === 'ready' && isMeasuringResponse && responseStartTime && !toastShownRef.current) {
+      const endTime = Date.now();
+      const timeTaken = endTime - responseStartTime;
+      setResponseTime(timeTaken);
+      console.log(`Response time: ${timeTaken}ms`);
+      setIsMeasuringResponse(false);
+      toastShownRef.current = true;
+      
+      // Show toast notification
+      toast.success(`Response generated in ${timeTaken}ms!`, {
+        position: 'top-center',
+        duration: 3000
+      });
+      
+      // Clear any existing timer
+      if (responseTimerRef.current) {
+        clearTimeout(responseTimerRef.current);
+        responseTimerRef.current = null;
+      }
+    }
+    
+    // Reset toast flag when starting new measurement
+    if (status === 'submitted') {
+      toastShownRef.current = false;
+    }
+    
+    // If status changes to "error" and we're measuring, stop the timer
+    if (status === 'error' && isMeasuringResponse) {
+      clearResponseTimer();
+    }
+  }, [error, status]);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (responseTimerRef.current) {
+        clearTimeout(responseTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -148,6 +229,19 @@ let id=params
   const sendMessageWithUser = async (message: any) => {
 
     console.log("static_user_id",STATIC_USER_ID)
+    // Start response time measurement
+    setResponseStartTime(Date.now());
+    setIsMeasuringResponse(true);
+    setResponseTime(null);
+    
+    // Set a timeout to automatically stop measuring after 30 seconds
+    responseTimerRef.current = setTimeout(() => {
+      if (isMeasuringResponse) {
+        console.log("Response time measurement timed out after 30 seconds");
+        setIsMeasuringResponse(false);
+      }
+    }, 30000);
+    
     // Add user context to the message metadata
     const messageWithUser = {
       ...message,userId: STATIC_USER_ID,
@@ -237,6 +331,15 @@ let id=params
             Chat ID: {chatId} | User: {STATIC_USER_ID}
           </p>
           
+          {/* Response time display */}
+          {responseTime !== null && (
+            <div className="mt-2 p-2 bg-green-100 border border-green-200 rounded-lg">
+              <div className="text-sm text-green-800">
+                Response time: <strong>{responseTime}ms</strong>
+              </div>
+            </div>
+          )}
+          
           {/* User Profile Display */}
           {userProfile && (
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -315,6 +418,7 @@ let id=params
               setMessages={setMessages}
               currentModel={model}
               onClearError={clearError}
+              responseTime={responseTime} // Pass response time to container
             />
           
         )}
@@ -333,6 +437,7 @@ let id=params
             messages={messages}
             setModel={setModel}
             model={model}
+            isMeasuringResponse={isMeasuringResponse} // Pass measurement state
           />
         )}
       </div>

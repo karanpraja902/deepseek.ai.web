@@ -17,6 +17,7 @@ interface ChatInputProps {
   messages: any[];
   model: string;
   setModel: (model: string) => void;
+  isMeasuringResponse?: boolean; // Add new prop
 }
 
 export default function ChatInput({
@@ -30,7 +31,8 @@ export default function ChatInput({
   chatId,
   messages,
   model,
-  setModel
+  setModel,
+  isMeasuringResponse = false // Default value
 }: ChatInputProps) {
   const [preFile,setPreFile]=useState<File[]>([]);
   const [isUploading,setIsUploading]=useState<Boolean>(false)
@@ -130,12 +132,12 @@ return;
           setUploadedFiles(upload);
           console.log("uploaded document:",upload)
           
-          // Remove this section - don't add summary to input immediately
-          // const pdfFile = upload.find(f => f.pdfAnalysis);
-          // if (pdfFile?.pdfAnalysis) {
-          //   const summaryText = `Document Summary...`;
-          //   setInput(input ? input + '\n' + summaryText : summaryText);
-          // }
+          // If PDF was analyzed, add summary to input
+          const pdfFile = upload.find(f => f.pdfAnalysis);
+          if (pdfFile?.pdfAnalysis) {
+            const summaryText = `Document Summary (${pdfFile.pdfAnalysis.pageCount} pages):\n${pdfFile.pdfAnalysis.summary}\n\nPlease analyze this document: `;
+            setInput(input ? input + '\n' + summaryText : summaryText);
+          }
           
           setIsUploading(false)
           return;
@@ -260,12 +262,11 @@ return;
     }
 
     if (key === 'doc') {
-      if(!preFile.length&&documentMode)
-{
-  console.log("documentMode:",documentMode)
-  setDocumentMode(false);
-  return;
-}      setDocumentMode(true);
+      if(!preFile.length&&documentMode){
+        setDocumentMode(false)
+        return;
+      }
+      setDocumentMode(true);
       setWebSearchEnabled(false); // Disable web search when document mode is enabled
       setShowTools(false);
       documentInputRef.current?.click();
@@ -291,6 +292,16 @@ return;
 
   return (
     <div className={`sticky bottom-0 bg-gradient-to-b from-transparent to-white/50 pb-4`}>
+      {/* Response time measurement indicator */}
+      {isMeasuringResponse && (
+        <div className="mb-2 p-2 bg-blue-100 border border-blue-200 rounded-lg text-center">
+          <div className="text-sm text-blue-700 flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Measuring response time...
+          </div>
+        </div>
+      )}
+      
       <form ref={formRef} onSubmit={handleSubmit}>
         {/* File preview section */}
         {preFile.length > 0 && (
@@ -375,7 +386,6 @@ return;
                 : "Ask me anything..."
             }
             className="flex-1 px-4 py-3 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-lg disabled:opacity-50 resize-none overflow-hidden max-h-[200px] min-h-[48px]"
-            // style={{ height: '48px' }} // Initial height
             rows={1}
           />
           <div className="flex relative justify-center" ref={toolsMenuRef}>
@@ -403,12 +413,12 @@ return;
                   <button 
                     onClick={() => handleToolSelect('web')} 
                     disabled={documentMode}
-                    className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors text-gray-700 ${
                       documentMode
                         ? 'opacity-50 cursor-not-allowed text-gray-400'
                         : webSearchEnabled 
-                        ? 'bg-blue-200 text-blue-700 hover:bg-blue-200' 
-                        : 'hover:bg-blue-100'
+                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                        : 'hover:bg-gray-50'
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -421,10 +431,10 @@ return;
                   
                   <button 
                     onClick={() => handleToolSelect('doc')} 
-                    className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors text-gray-700 ${
                       documentMode 
-                        ? 'bg-blue-200 text-blue-700 hover:bg-blue-200' 
-                        : 'hover:bg-blue-100'
+                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                        : 'hover:bg-gray-50'
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -437,10 +447,10 @@ return;
                   <button 
                     onClick={() => handleToolSelect('weather')} 
                     disabled={documentMode}
-                    className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors text-gray-700 ${
                       documentMode 
                         ? 'opacity-50 cursor-not-allowed text-gray-400' 
-                        : 'hover:bg-blue-100'
+                        : 'hover:bg-gray-50'
                     }`}
                   >
                     <span className="flex items-center gap-2"><CloudSun className="w-4 h-4" />Weather</span>
@@ -448,10 +458,10 @@ return;
                   <button 
                     onClick={() => handleToolSelect('research')} 
                     disabled={documentMode}
-                    className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors text-gray-700 ${
                       documentMode 
                         ? 'opacity-50 cursor-not-allowed text-gray-400' 
-                        : 'hover:bg-blue-100'
+                        : 'hover:bg-gray-50'
                     }`}
                   >
                     <span className="flex items-center gap-2"><FlaskConical className="w-4 h-4" />Deep Research</span>

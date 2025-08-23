@@ -12,6 +12,10 @@ export class ModelProviderService {
       console.log("getOpenRouterKeyForModelIf:", modelId);
       return process.env.OPEN_ROUTER_DEEPSEEK_R1_1;
     }
+    if (modelId.startsWith('nousresearch/deephermes')) {
+      console.log("getOpenRouterKeyForModelIf:", modelId);
+      return process.env.OPEN_ROUTER_DeepHermes;
+    }
     
     if (modelId.startsWith('openai/gpt')) {
       console.log("getOpenRouterKeyForModelIf:", modelId);
@@ -41,6 +45,7 @@ export class ModelProviderService {
     if (typeof selectedModel === 'string' && selectedModel.startsWith('openrouter:')) {
       console.log("selectedModelisDeepSeek");
       const orModel = selectedModel.replace('openrouter:', '');
+      console.log("orModel:", orModel);
       const apiKey = this.getOpenRouterKeyForModel(orModel);
       console.log("apiKey:", apiKey);
       

@@ -51,10 +51,32 @@ export async function uploadFilesClient(
 			publicId: data.public_id,
 		};
 
-		// If it's a PDF, just mark it for later analysis
+		// If it's a PDF, analyze it
 		if (file.type === 'application/pdf') {
-			console.log('📄 PDF uploaded, will analyze when message is sent');
-			// No analysis here - just upload the file
+			try {
+				const analysisResponse = await fetch('/api/pdf/analyze', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						url: uploadedFile.url,
+						filename: uploadedFile.filename,
+					}),
+				});
+
+				if (analysisResponse.ok) {
+					const analysis = await analysisResponse.json();
+					uploadedFile.pdfAnalysis = {
+						summary: analysis.summary,
+						content: analysis.content,
+						pageCount: analysis.pageCount,
+					};
+				}
+			} catch (error) {
+				console.error('Failed to analyze PDF:', error);
+				// Continue without analysis if it fails
+			}
 		}
 
 		return uploadedFile;

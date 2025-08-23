@@ -13,24 +13,23 @@ export const maxDuration = 20;
 const responseCache = new Map<string, { response: any, timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-// Update the model optimization settings for complete responses
-
+// Model-specific optimization settings
 function getOptimizedSettings(selectedModel: string) {
   // Google Gemini - fastest model, can handle more tokens
   if (selectedModel === 'google') {
     return {
       temperature: 0.2,
-      maxTokens: 1500, // Increased for complete responses
-      contextSize: -4
+      maxTokens: 1000,
+      contextSize: -4 // Last 4 messages
     };
   }
   
-  // DeepSeek R1 - reasoning model, needs more tokens for complete analysis
+  // DeepSeek R1 - reasoning model, needs optimization for speed
   if (selectedModel.includes('deepseek')) {
     return {
-      temperature: 0.1,
-      maxTokens: 1200, // Increased from 600
-      contextSize: -2
+      temperature: 0.1, // Lower temperature for faster reasoning
+      maxTokens: 600,   // Reduced tokens for speed
+      contextSize: -2   // Only last 2 messages
     };
   }
   
@@ -38,7 +37,7 @@ function getOptimizedSettings(selectedModel: string) {
   if (selectedModel.includes('llama')) {
     return {
       temperature: 0.15,
-      maxTokens: 1000, // Increased
+      maxTokens: 800,
       contextSize: -3
     };
   }
@@ -47,15 +46,15 @@ function getOptimizedSettings(selectedModel: string) {
   if (selectedModel.includes('gpt') || selectedModel.includes('openai')) {
     return {
       temperature: 0.2,
-      maxTokens: 1200, // Increased
+      maxTokens: 900,
       contextSize: -3
     };
   }
   
-  // Default fallback - optimized for complete responses
+  // Default fallback - optimized for speed
   return {
     temperature: 0.1,
-    maxTokens: 1000, // Increased from 700
+    maxTokens: 700,
     contextSize: -3
   };
 }
@@ -97,41 +96,8 @@ export async function POST(req: Request) {
   // Process web search if enabled
   const webSearchResults = await WebSearchService.processWebSearch(enableWebSearch, messages);
 
-  // Add this after extracting request parameters
-  const pdfFiles = lastMessage?.parts?.filter((part: any) => 
-    part.type === 'file' && part.mediaType === 'application/pdf'
-  );
-
-  // Process PDF files if present
-  let pdfContext = '';
-  if (pdfFiles && pdfFiles.length > 0) {
-    console.log('🔍 Processing PDF files in chat...');
-    
-    for (const pdfFile of pdfFiles) {
-      try {
-        // Analyze PDF when message is sent, not during upload
-        const analysisResponse = await fetch('/api/pdf/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            url: pdfFile.url,
-            filename: pdfFile.filename,
-          }),
-        });
-        
-        if (analysisResponse.ok) {
-          const analysis = await analysisResponse.json();
-          pdfContext += `Document: ${analysis.filename}\nSummary: ${analysis.summary}\n\n`;
-        }
-      } catch (error) {
-        console.error('PDF analysis failed:', error);
-        pdfContext += `Document: ${pdfFile.filename} (analysis pending)\n\n`;
-      }
-    }
-  }
-
-  // Include PDF context in system prompt
-  const systemPrompt = MessageHandlerService.generateSystemPrompt(webSearchResults, memories, pdfContext);
+  // Generate system prompt with context
+  const systemPrompt = MessageHandlerService.generateSystemPrompt(webSearchResults, memories);
 
   // Create timeout controller
   const { controller, timeoutId } = StreamHandlerService.createTimeoutController();

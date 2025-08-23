@@ -1,15 +1,17 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/deepseek-ai';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+  throw new Error('Please define the MONGODB_URI environment variable');
 }
 
-const cached: {
+interface ConnectionCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
-} = { conn: null, promise: null };
+}
+
+const cached: ConnectionCache = { conn: null, promise: null };
 
 export async function connectToDatabase() {
   if (cached.conn) {
@@ -18,10 +20,15 @@ export async function connectToDatabase() {
 
   if (!cached.promise) {
     const opts = {
-      bufferCommands: false,
+      bufferCommands: false, // Disable Mongoose buffering
+      serverSelectionTimeoutMS: 5000, // Fail fast if no server is available
+      socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+      maxPoolSize: 1, // Maintain a single socket connection
+      minPoolSize: 1, // Avoid empty pools
+      maxIdleTimeMS: 10000, // Close idle connections after 10s
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then(mongoose => {
       return mongoose;
     });
   }
@@ -29,7 +36,7 @@ export async function connectToDatabase() {
   try {
     cached.conn = await cached.promise;
   } catch (e) {
-    cached.promise = null;
+    cached.promise = null; // Reset on failure
     throw e;
   }
 

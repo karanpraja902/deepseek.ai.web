@@ -12,6 +12,7 @@ interface ChatContainerProps {
   setMessages: (messages: any[]) => void;
   currentModel?: string;
   onClearError?: () => void;
+  responseTime?: number | null; // Add response time prop
 }
 
 export default function ChatContainer({
@@ -22,6 +23,7 @@ export default function ChatContainer({
   setMessages,
   currentModel,
   onClearError,
+  responseTime, // Destructure the new prop
 }: ChatContainerProps) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -30,20 +32,16 @@ export default function ChatContainer({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ url: string; filename?: string; type?: string } | null>(null);
   
-  // console.log("chatContainerMessage:",messages)
   useEffect(() => {
     if(status==="streaming"){
       const timerId = setTimeout(() => {
         window.scrollTo(0, document.body.scrollHeight);
-      }, 1000); // Delay of 2000 milliseconds (2 seconds)
-  
-      // 2. Cleanup function: runs on component unmount
+      }, 1000);
+
       return () => {
-        clearTimeout(timerId); // Cancels the timeout if the component unmounts
+        clearTimeout(timerId);
       };
     }
-   
-
   }, [status,messages]);
 
   const handleEdit = (messageId: string, currentText: string) => {
@@ -120,7 +118,6 @@ export default function ChatContainer({
     return <FileText className="w-5 h-5 text-blue-600" />;
   };
 
-// console.log("ContainerMessage:",messages)
 if(preview){
   return(
     
@@ -420,6 +417,13 @@ if(preview){
               {status === 'submitted' ? 'Processing your request...' : 'Generating response...'}
             </span>
           </div>
+          
+          {/* Response time display */}
+          {responseTime !== null && (
+            <div className="mt-2 text-sm text-blue-600">
+              Response generated in: <strong>{responseTime}ms</strong>
+            </div>
+          )}
         </div>
       )}
     </div>
