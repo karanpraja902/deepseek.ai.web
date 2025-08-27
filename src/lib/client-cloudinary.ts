@@ -1,5 +1,6 @@
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 
 export type UploadedClientFile = {
 	url: string;
@@ -27,9 +28,11 @@ export async function uploadFilesClient(
 	}
 
 	const uploads = files.map(async (file) => {
-		const fd = new FormData();
+		console.log("client-cloudinary:",file)
+        const fd = new FormData();
 		fd.append('file', file);
 		fd.append('upload_preset', uploadPreset);
+    
 
 		const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
 			method: 'POST',
@@ -51,34 +54,6 @@ export async function uploadFilesClient(
 			publicId: data.public_id,
 		};
 
-		// If it's a PDF, analyze it
-		if (file.type === 'application/pdf') {
-			try {
-				const analysisResponse = await fetch('/api/pdf/analyze', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({
-						url: uploadedFile.url,
-						filename: uploadedFile.filename,
-					}),
-				});
-
-				if (analysisResponse.ok) {
-					const analysis = await analysisResponse.json();
-					uploadedFile.pdfAnalysis = {
-						summary: analysis.summary,
-						content: analysis.content,
-						pageCount: analysis.pageCount,
-					};
-				}
-			} catch (error) {
-				console.error('Failed to analyze PDF:', error);
-				// Continue without analysis if it fails
-			}
-		}
-
 		return uploadedFile;
 	});
 
@@ -86,79 +61,83 @@ export async function uploadFilesClient(
 }
 
 export async function deleteFileFromCloudinary(publicId: string): Promise<boolean> {
-	if (!publicId) return false;
+    if (!publicId) return false;
 
-	try {
-		const response = await fetch('/api/cloudinary/delete', {
-			method: 'DELETE',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify({ publicId }),
-		});
-		console.log("deleteResponse:",response)
+    try {
+        const response = await fetch('/api/cloudinary/delete', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ publicId }),
+        });
+        console.log("deleteResponse:", response);
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			console.error('Failed to delete file from Cloudinary:', errorData);
-			return false;
-		}
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Failed to delete file from Cloudinary:', errorData);
+            return false;
+        }
 
-		const result = await response.json();
-		return result.success === true;
-	} catch (error) {
-		console.error('Error calling Cloudinary delete API:', error);
-		return false;
-	}
+        const result = await response.json();
+        return result.success === true;
+    } catch (error) {
+        console.error('Error calling Cloudinary delete API:', error);
+        return false;
+    }
 }
 
 export interface PDFAnalysisResult {
-  summary: string;
-  content: string;
-  pageCount: number;
-  filename: string;
+    summary: string;
+    content: string;
+    pageCount: number;
+    filename: string;
 }
 
 export async function analyzePDFFromUrl(url: string, filename: string): Promise<PDFAnalysisResult> {
-  try {
-    // Download the PDF from Cloudinary
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to download PDF: ${response.statusText}`);
+    try {
+        // Download the PDF from Cloudinary
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to download PDF: ${response.statusText}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // Use LangChain to load and split the PDF document.
+        const loader = new PDFLoader(buffer.toString());
+        const docs = await loader.load();
+        
+        // Combine all page content
+        const fullContent = docs.map(doc => doc.pageContent).join('\n\n');
+
+        // Split content for better processing with a text splitter.
+        const textSplitter = new RecursiveCharacterTextSplitter({
+            chunkSize: 1000,
+            chunkOverlap: 200,
+        });
+
+        const chunks = await textSplitter.splitText(fullContent);
+
+        // Generate a summary using a Large Language Model (LLM).
+        const llm = new ChatGoogleGenerativeAI({
+            model: "gemini-pro",
+            temperature: 0.3,
+            maxOutputTokens: 500,
+        });
+        const summaryResult = await llm.invoke(`Generate a concise summary (max 200 words) of the following document content: ${chunks.slice(0, 5).join('\n\n')}`);
+        const summary = summaryResult.content.toString();
+
+        return {
+            summary,
+            content: fullContent,
+            pageCount: docs.length,
+            filename
+        };
+    } catch (error) {
+        console.error('Error analyzing PDF:', error);
+        throw new Error(`Failed to analyze PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-    
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    
-    // Create a temporary blob for the PDFLoader
-    const blob = new Blob([buffer], { type: 'application/pdf' });
-    
-    // Load PDF using langchain
-    const loader = new PDFLoader(blob);
-    const docs = await loader.load();
-    
-    // Combine all page content
-    const fullContent = docs.map(doc => doc.pageContent).join('\n\n');
-    
-    // Split content for better processing
-    const textSplitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 1000,
-      chunkOverlap: 200,
-    });
-    
-    const chunks = await textSplitter.splitText(fullContent);
-    
-    // Generate a summary (taking first few chunks as a basic summary)
-    const summary = chunks.slice(0, 3).join('\n\n');
-    
-    return {
-      summary: summary.length > 500 ? summary.substring(0, 500) + '...' : summary,
-      content: fullContent,
-      pageCount: docs.length,
-      filename
-    };
-  } catch (error) {
-    console.error('Error analyzing PDF:', error);
-    throw new Error(`Failed to analyze PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
 }
+

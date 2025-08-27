@@ -1,48 +1,221 @@
 'use client';
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { Loader2, RefreshCw, Copy, Check, Edit, X, FileText, Download, Eye } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { ChatApiService } from '../../services/api/chat';
 
 interface ChatContainerProps {
   messages: any[];
-  status: string;
-  error: any;
-  onRegenerate: () => void;
   setMessages: (messages: any[]) => void;
   currentModel?: string;
   onClearError?: () => void;
-  responseTime?: number | null; // Add response time prop
+  onSaveMessage?: (chatId: string, message: any) => Promise<void>;
+  chatId?: string;
 }
 
-export default function ChatContainer({
+export interface ChatContainerRef {
+  sendMessage: (message: any) => Promise<void>;
+  stop: () => void;
+}
+
+const ChatContainer = React.forwardRef<ChatContainerRef, ChatContainerProps>(({
   messages,
-  status,
-  error,
-  onRegenerate,
   setMessages,
   currentModel,
   onClearError,
-  responseTime, // Destructure the new prop
-}: ChatContainerProps) {
+  onSaveMessage,
+  chatId
+}, ref) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Internal streaming state
+  const [status, setStatus] = useState<'idle' | 'processing' | 'streaming' | 'complete'>('idle');
+  const [error, setError] = useState<any>(null);
+  const [responseTime, setResponseTime] = useState<number | null>(null);
+  const streamControllerRef = useRef<AbortController | null>(null);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+  const [pendingUserMessage, setPendingUserMessage] = useState<any>(null);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ url: string; filename?: string; type?: string } | null>(null);
   
-  useEffect(() => {
-    if(status==="streaming"){
-      const timerId = setTimeout(() => {
-        window.scrollTo(0, document.body.scrollHeight);
-      }, 1000);
+  // Memoized values
+  const modelDisplayName = useMemo(() => {
+    const modelMap: Record<string, string> = {
+      'google': 'Google Gen AI',
+      'openrouter:deepseek/deepseek-r1-0528:free': 'DeepSeek R1',
+      'openrouter:nvidia/llama-3.1-nemotron-ultra-253b-v1:free': 'Llama 3.1',
+      'openrouter:openai/gpt-oss-20b:free': 'GPT-Oss-20b'
+    };
+    return modelMap[currentModel || ''] || currentModel || 'Unknown Model';
+  }, [currentModel]);
 
-      return () => {
-        clearTimeout(timerId);
+  const lastUserMessage = useMemo(() => {
+    return [...messages].reverse().find(msg => msg.role === 'user');
+  }, [messages]);
+  
+  // Streaming message function
+  const sendMessage = useCallback(async (message: any) => {
+    try {
+      setStatus('processing');
+      setError(null);
+      const startTime = Date.now();
+
+      // Create message but don't add to UI yet
+      const newMessage = {
+        id: Date.now().toString(),
+        role: message.role || 'user',
+        content: message.content || message,
+        parts: message.parts || [],
+        createdAt: new Date()
       };
+
+      // Check if this is an image generation message
+      if (message.metadata?.isImageGeneration) {
+        // For image generation, add the assistant message immediately (no streaming)
+        setStatus('complete');
+        
+        // For image generation, just add the message directly
+        const finalMessages = [...messages, newMessage];
+        setMessages(finalMessages);
+        setResponseTime(Date.now() - startTime);
+
+        // Save message if needed
+        if (onSaveMessage && chatId) {
+          await onSaveMessage(chatId, newMessage);
+        }
+        return;
+      }
+
+      // Store pending message
+      setPendingUserMessage(newMessage);
+
+      // Prepare messages for API (include pending message)
+      const apiMessages = [...messages, newMessage].map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      // Create abort controller for this request
+      const controller = new AbortController();
+      streamControllerRef.current = controller;
+
+      // Make streaming request
+      const response = await ChatApiService.sendMessage(apiMessages, {
+        signal: controller.signal,
+      });
+
+      // Now start streaming and show messages
+      setStatus('streaming');
+      
+      // Create assistant message placeholder
+      const assistantMessageId = (Date.now() + 1).toString();
+      setStreamingMessageId(assistantMessageId);
+      
+      const assistantMessage = {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: '',
+        createdAt: new Date()
+      };
+      
+      // Only now add both messages to UI when streaming starts
+      const initialMessages = [...messages, newMessage, assistantMessage];
+      setMessages(initialMessages);
+      setPendingUserMessage(null);
+
+      // Parse streaming response with real-time updates
+      let accumulatedText = '';
+      let currentMessages = initialMessages;
+
+      await ChatApiService.parseStreamingResponse(response, (chunk: string) => {
+        accumulatedText += chunk;
+        
+        // Update the assistant message with accumulated text
+        currentMessages = currentMessages.map(msg => 
+          msg.id === assistantMessageId 
+            ? { ...msg, content: accumulatedText }
+            : msg
+        );
+        
+        setMessages([...currentMessages]);
+      });
+
+      setStatus('complete');
+      setResponseTime(Date.now() - startTime);
+
+              // Save messages after completion
+        if (onSaveMessage && chatId) {
+          await onSaveMessage(chatId, newMessage);
+          await onSaveMessage(chatId, { ...assistantMessage, content: accumulatedText });
+        }
+
+    } catch (error: any) {
+      console.error('Streaming error:', error);
+      
+      if (error.name !== 'AbortError') {
+        // Provide detailed error information
+        let errorDetails = error;
+        if (error.message) {
+          errorDetails = {
+            ...error,
+            message: `Chat error: ${error.message}`,
+            details: error.response?.data?.error || error.statusText || 'Unknown error occurred'
+          };
+        }
+        setError(errorDetails);
+      }
+      
+      setStatus('idle');
+    } finally {
+      streamControllerRef.current = null;
+      setStreamingMessageId(null);
+      setPendingUserMessage(null);
     }
-  }, [status,messages]);
+  }, [messages, setMessages, onSaveMessage, chatId]);
+
+  const stop = () => {
+    if (streamControllerRef.current) {
+      streamControllerRef.current.abort();
+      streamControllerRef.current = null;
+    }
+    setStatus('idle');
+    setStreamingMessageId(null);
+    setPendingUserMessage(null);
+  };
+
+  const regenerate = useCallback(() => {
+    if (messages.length >= 2) {
+      const newMessages = messages.slice(0, -1);
+      setMessages(newMessages);
+      
+      if (lastUserMessage) {
+        sendMessage({ content: lastUserMessage.content });
+      }
+    }
+  }, [messages, setMessages, lastUserMessage, sendMessage]);
+
+  // console.log("chatContainerMessage:",messages)
+  useEffect(() => {
+    if (status === "streaming" || messages.length > 0) {
+      // 🔥 Immediate scroll with no delay for streaming
+      const timerId = setTimeout(() => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTo({
+            top: chatContainerRef.current.scrollHeight,
+            behavior: status === "streaming" ? 'auto' : 'smooth' // 🔥 Instant scroll during streaming
+          });
+        }
+      }, status === "streaming" ? 0 : 100); // 🔥 No delay for streaming
+
+      return () => clearTimeout(timerId);
+    }
+  }, [status, messages, messages[messages.length - 1]?.content]); // 🔥 Also watch content changes
 
   const handleEdit = (messageId: string, currentText: string) => {
     setEditingId(messageId);
@@ -52,11 +225,11 @@ export default function ChatContainer({
   const handleSaveEdit = (messageId: string) => {
     const updated = messages.map(msg =>
       msg.id === messageId
-        ? { ...msg, parts: [{ type: 'text', text: editText }] }
+        ? { ...msg, content: editText, parts: [{ type: 'text', text: editText }] }
         : msg
     );
     setMessages(updated);
-    onRegenerate();
+    regenerate();
     setEditingId(null);
     setEditText('');
   };
@@ -67,10 +240,14 @@ export default function ChatContainer({
   };
 
   const getMessageText = (message: any) => {
-    return message.parts
-      .filter((part: any) => part.type === 'text')
-      .map((part: any) => part.text)
-      .join('\n');
+    // Handle both old (parts) and new (content) message formats
+    if (message.parts) {
+      return message.parts
+        .filter((part: any) => part.type === 'text')
+        .map((part: any) => part.text)
+        .join('\n');
+    }
+    return message.content || '';
   };
 
   const handleCopy = async (text: string, messageId: string) => {
@@ -83,23 +260,76 @@ export default function ChatContainer({
     }
   };
 
-  // Helper function to get model display name
-  const getModelDisplayName = (model: string) => {
-    const modelMap: Record<string, string> = {
-      'google': 'Google Gen AI',
-      'openrouter:deepseek/deepseek-r1-0528:free': 'DeepSeek R1',
-      'openrouter:nvidia/llama-3.1-nemotron-ultra-253b-v1:free': 'Llama 3.1',
-      'openrouter:openai/gpt-oss-20b:free': 'GPT-Oss-20b'
-    };
-    return modelMap[model] || model;
-  };
+  // Enhanced message rendering with real-time markdown
+  const renderMessageContent = useCallback((content: string, isStreaming: boolean = false) => {
+    return (
+      <div className="w-full whitespace-pre-wrap leading-relaxed markdown">
+        <ReactMarkdown 
+          remarkPlugins={[remarkGfm]}
+          components={{
+            code({ node, inline, className, children, ...props }: any) {
+              const match = /language-(\w+)/.exec(className || '');
+              return !inline && match ? (
+                <SyntaxHighlighter
+                  style={tomorrow as any}
+                  language={match[1]}
+                  PreTag="div"
+                  className="rounded-lg"
+                >
+                  {String(children).replace(/\n$/, '')}
+                </SyntaxHighlighter>
+              ) : (
+                <code className={`${className} bg-gray-100 px-1 py-0.5 rounded text-sm`} {...props}>
+                  {children}
+                </code>
+              );
+            },
+            // Add typing indicator for streaming
+            p({ children, ...props }) {
+              return (
+                <p {...props}>
+                  {children}
+                  {isStreaming && (
+                    <span className="inline-block w-2 h-4 bg-blue-500 animate-pulse ml-1" />
+                  )}
+                </p>
+              );
+            }
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
+    );
+  }, []);
+
+  // Typing Indicator Component
+  const TypingIndicator = () => (
+    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+      <div className="flex space-x-1">
+        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+      </div>
+      <span className="text-sm text-gray-500">
+        {status === 'processing' ? 'Sending message...' : 'AI is thinking...'}
+      </span>
+    </div>
+  );
 
   // Handle clearing error and staying on same chat
   const handleClearError = () => {
+    setError(null);
     if (onClearError) {
       onClearError();
     }
   };
+
+  // Expose sendMessage function for ChatInput
+  React.useImperativeHandle(ref, () => ({
+    sendMessage,
+    stop
+  }));
 
   // Helper function to determine if a file is a document
   const isDocument = (mediaType: string) => {
@@ -118,6 +348,7 @@ export default function ChatContainer({
     return <FileText className="w-5 h-5 text-blue-600" />;
   };
 
+// console.log("ContainerMessage:",messages)
 if(preview){
   return(
     
@@ -178,6 +409,7 @@ if(preview){
     
   )
 }
+console.log("chatContainerMessages:",messages)
   return (
     <div 
       className={`bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-6 mb-6 ${
@@ -202,14 +434,37 @@ if(preview){
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">Model Error</h3>
-          <p className="text-gray-500 mb-4">
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">Error Occurred</h3>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 max-w-md mx-auto">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h4 className="text-sm font-medium text-red-800">
+                  {error.message || 'An error occurred'}
+                </h4>
+                {error.details && (
+                  <div className="mt-1 text-sm text-red-700">
+                    {error.details}
+                  </div>
+                )}
+                {error.status && (
+                  <div className="mt-1 text-xs text-red-600">
+                    Status: {error.status}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <p className="text-gray-500 mb-6">
             {currentModel ? 
-              `The ${getModelDisplayName(currentModel)} model is currently unable to generate a response.` : 
-              'The selected model is currently unable to generate a response.'
+              `The ${modelDisplayName} model encountered an error.` : 
+              'The selected model encountered an error.'
             }
           </p>
-          <p className="text-gray-500 mb-6">Please select another model and try again.</p>
           <button
             onClick={handleClearError}
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 mx-auto">
@@ -231,7 +486,7 @@ if(preview){
                 <div className="flex items-center gap-2 absolute -bottom-2 right-2 mb-3 group-hover:opacity-100 transition-opacity duration-200">
                   {message.role === 'assistant' && (status !== "streaming") && (
                     <button
-                      onClick={onRegenerate}
+                      onClick={regenerate}
                       className="p-1.5 bg-gray-50 hover:bg-blue-50 text-black-500 relative group/tooltip"
                       aria-label="Regenerate response"
                       title="Regenerate Response"
@@ -289,7 +544,7 @@ if(preview){
                   
                   <div className="space-y-2">
                     {/* Render file attachments */}
-                    {message.parts.map((part: any, index: number) => {
+                    {(message.parts || []).map((part: any, index: number) => {
                       if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
                         return (
                           <div key={part.index ?? `${message.id}-img-${index}`} className="relative group">
@@ -319,7 +574,7 @@ if(preview){
                             <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                               {getFileIcon(part.mediaType, part.filename)}
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-gray-900 truncate">
+                                <div className="text-sm font-medium text-gray-900">
                                   {part.filename}
                                 </div>
                                 {part.pdfAnalysis && (
@@ -350,9 +605,48 @@ if(preview){
                             </div>
                             {part.pdfAnalysis && (
                               <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded text-xs text-gray-600">
-                                <strong>Summary:</strong> {part.pdfAnalysis.summary}
+                                <strong>Document Summary:</strong> {part.pdfAnalysis.summary}
                               </div>
                             )}
+                          </div>
+                        );
+                      }
+
+                      // Handle generated images
+                      if (part.type === 'generated-image') {
+                        return (
+                          <div key={part.index ?? `${message.id}-genimg-${index}`} className="relative group mt-4">
+                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                <span className="text-sm font-medium text-purple-700">Generated Image</span>
+                                <span className="text-xs text-purple-500">
+                                  {new Date(part.generatedAt).toLocaleTimeString()}
+                                </span>
+                              </div>
+                              
+                              <div className="relative">
+                                <img
+                                  src={part.image}
+                                  alt={part.prompt}
+                                  className="w-full max-w-lg rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-shadow"
+                                  onClick={() => setPreview({ url: part.image, filename: `Generated: ${part.prompt}`, type: 'image' })}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setPreview({ url: part.image, filename: `Generated: ${part.prompt}`, type: 'image' })}
+                                  className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                                  title="View full size"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                              </div>
+                              
+                              <div className="mt-3 p-3 bg-white rounded border border-purple-200">
+                                <div className="text-xs text-purple-600 font-medium mb-1">Prompt:</div>
+                                <div className="text-sm text-gray-700">{part.prompt}</div>
+                              </div>
+                            </div>
                           </div>
                         );
                       }
@@ -387,16 +681,19 @@ if(preview){
                   ) : (
                     <div className="flex flex-col items-center leading-relaxed space-y-2 gap-2">
                
-                      {message.parts.map((part: any, index: number) => {
-	if (part.type === 'text') {
-		return (
-			<div key={message.id} className="w-full whitespace-pre-wrap leading-relaxed markdown">
-				<ReactMarkdown remarkPlugins={[remarkGfm]}>
-					{part.text}
-				</ReactMarkdown>
-			</div>
-		);
-  }})}
+                      {(message.parts || [{ type: 'text', text: message.content }]).map((part: any, index: number) => {
+                        if (part.type === 'text') {
+                          return (
+                            <div key={`${message.id}-text-${index}`}>
+                              {renderMessageContent(
+                                part.text,
+                                status === 'streaming' && message.id === streamingMessageId
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })}
                     </div>
                   )}
                   </div>
@@ -407,25 +704,15 @@ if(preview){
         </div>
       )}
 
-      {(status === 'submitted' || status === 'streaming') && (
-        <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-blue-50 rounded-xl border border-blue-200">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-            </div>
-            <span className="text-blue-800 font-medium">
-              {status === 'submitted' ? 'Processing your request...' : 'Generating response...'}
-            </span>
-          </div>
-          
-          {/* Response time display */}
-          {responseTime !== null && (
-            <div className="mt-2 text-sm text-blue-600">
-              Response generated in: <strong>{responseTime}ms</strong>
-            </div>
-          )}
+      {(status === 'processing' || status === 'streaming') && (
+        <div className="mt-4">
+          <TypingIndicator />
         </div>
       )}
     </div>
   );
-}
+});
+
+ChatContainer.displayName = 'ChatContainer';
+
+export default ChatContainer;

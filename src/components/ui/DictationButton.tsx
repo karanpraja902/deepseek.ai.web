@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 
 // Web Speech API types
@@ -60,7 +60,7 @@ export default function DictationButton({
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
 
-  // Size classes
+  // Size classes - simple objects, no memoization needed
   const sizeClasses = {
     sm: 'p-1.5',
     md: 'p-2',
@@ -74,7 +74,7 @@ export default function DictationButton({
   };
 
   // Initialize speech recognition
-  const initSpeechRecognition = () => {
+  const initSpeechRecognition = useCallback(() => {
     if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
       const recognition = new SpeechRecognition();
@@ -130,9 +130,9 @@ export default function DictationButton({
       return recognition;
     }
     return null;
-  };
+  }, [onRecordingChange, onTranscript]);
 
-  const toggleRecording = () => {
+  const toggleRecording = useCallback(() => {
     if (disabled) return;
     
     if (!recognition) {
@@ -147,7 +147,7 @@ export default function DictationButton({
     } else {
       recognition.start();
     }
-  };
+  }, [disabled, recognition, isRecording, initSpeechRecognition]);
 
   // Cleanup speech recognition on unmount
   useEffect(() => {
