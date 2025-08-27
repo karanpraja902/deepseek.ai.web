@@ -144,7 +144,7 @@ export class ChatApiService {
     }
   }
 
-  static async sendMessage(messages: any[], options?: { signal?: AbortSignal; enableWebSearch?: boolean }) {
+  static async sendMessage(messages: any[], options?: { signal?: AbortSignal; enableWebSearch?: boolean; userId?: string }) {
     try {
       const response = await fetch(`${API_BASE_URL}/ai/chat/stream`, {
         method: 'POST',
@@ -153,7 +153,8 @@ export class ChatApiService {
         },
         body: JSON.stringify({ 
           messages,
-          enableWebSearch: options?.enableWebSearch || false
+          enableWebSearch: options?.enableWebSearch || false,
+          userId: options?.userId
         }),
         signal: options?.signal,
       });

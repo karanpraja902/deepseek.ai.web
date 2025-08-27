@@ -14,6 +14,7 @@ interface ChatContainerProps {
   onClearError?: () => void;
   onSaveMessage?: (chatId: string, message: any) => Promise<void>;
   chatId?: string;
+  userId?: string;
 }
 
 export interface ChatContainerRef {
@@ -27,7 +28,8 @@ const ChatContainer = React.forwardRef<ChatContainerRef, ChatContainerProps>(({
   currentModel,
   onClearError,
   onSaveMessage,
-  chatId
+  chatId,
+  userId
 }, ref) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -108,6 +110,7 @@ const ChatContainer = React.forwardRef<ChatContainerRef, ChatContainerProps>(({
       // Make streaming request
       const response = await ChatApiService.sendMessage(apiMessages, {
         signal: controller.signal,
+        userId: userId
       });
 
       // Now start streaming and show messages
@@ -177,7 +180,7 @@ const ChatContainer = React.forwardRef<ChatContainerRef, ChatContainerProps>(({
       setStreamingMessageId(null);
       setPendingUserMessage(null);
     }
-  }, [messages, setMessages, onSaveMessage, chatId]);
+  }, [messages, setMessages, onSaveMessage, chatId, userId]);
 
   const stop = () => {
     if (streamControllerRef.current) {

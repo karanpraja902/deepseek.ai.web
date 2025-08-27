@@ -37,6 +37,33 @@ export interface WebSearchWithAIResponse {
   };
 }
 
+export interface DocumentAnalysisRequest {
+  pdfUrl: string;
+  question?: string;
+  analysisType?: 'summary' | 'qa' | 'extract' | 'general';
+}
+
+export interface DocumentAnalysisResponse {
+  success: boolean;
+  data: {
+    analysis: string;
+    sourceDocuments: Array<{
+      pageContent: string;
+      metadata: any;
+    }>;
+    analysisType: string;
+    question: string | null;
+    pdfUrl: string;
+    analyzedAt: string;
+    documentInfo: {
+      totalPages: number;
+      totalChunks: number;
+      chunkSize: number;
+      chunkOverlap: number;
+    };
+  };
+}
+
 export class AiApiService {
   static async generateImage(params: ImageGenerationRequest): Promise<ImageGenerationResponse> {
     try {
@@ -67,6 +94,7 @@ export class AiApiService {
 
   static async webSearchWithAI(params: WebSearchWithAIRequest): Promise<WebSearchWithAIResponse> {
     try {
+      console.log("webSearchWithAI params:", params);
       const response = await fetch(`${API_BASE_URL}/ai/web-search`, {
         method: 'POST',
         headers: {
@@ -92,4 +120,31 @@ export class AiApiService {
     }
   }
 
+  static async analyzeDocument(params: DocumentAnalysisRequest): Promise<DocumentAnalysisResponse> {
+    try {
+      console.log("analyzeDocument params:", params);
+      const response = await fetch(`${API_BASE_URL}/pdf/analyze`, {
+        method: 'POST', 
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+        const error = new Error(errorMessage);
+        (error as any).status = response.status;
+        (error as any).details = errorData.details;
+        (error as any).timestamp = errorData.timestamp;
+        throw error;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Document analysis error:', error);
+      throw error;
+    }
+  }
 }

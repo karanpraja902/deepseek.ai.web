@@ -1,5 +1,5 @@
 import { UIMessage } from 'ai';
-import { ChatService } from './chat-service';
+import { ChatApiService } from '../services/api/chat';
 
 export interface MessagePart {
   type: string;
@@ -90,11 +90,7 @@ export class MessageHandlerService {
       if (lastMsg && lastMsg.role === 'user' && chatId) {
         const { textPart, fileParts } = this.processMessageParts(lastMsg);
 
-        await ChatService.addMessage(chatId, {
-          role: 'user',
-          content: textPart,
-          files: fileParts,
-        }, userId);
+        await ChatApiService.addMessage(chatId, 'user', textPart, fileParts);
       }
     } catch (e) {
       console.error('Failed to save user message:', e);

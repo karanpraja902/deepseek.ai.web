@@ -46,9 +46,79 @@ export default function ChatPage() {
   
   // Custom streaming state (instead of useChat)
   const [messages, setMessages] = useState<any[]>([]);
-  const [status, setStatus] = useState<'idle' | 'streaming' | 'ready' | 'preparing'>('idle');
+  const [status, setStatus] = useState<'idle' | 'streaming' | 'ready' | 'preparing' | 'generating'|'connecting'|'converting' | 'analyzing' | 'searching'|''>('idle');
+  const [statusSub, setStatusSub] = useState<string>('');
   const [error, setError] = useState<any>(null);
   const streamControllerRef = useRef<AbortController | null>(null);
+  const [isImageGenerating, setIsImageGenerating] = useState(false);
+  const [isWebSearching, setIsWebSearching] = useState(false);
+  const [isDocumentAnalyzing, setIsDocumentAnalyzing] = useState(false);
+
+  // Optimized status management for all operations
+  useEffect(() => {
+    let statusMessages: Array<{ main: string; sub: string }> = [];
+    let operationType = '';
+    
+    if (isImageGenerating) {
+      operationType = 'Image Generation';
+      statusMessages = [
+        { main: 'preparing', sub: 'Initializing image generation...' },
+        { main: 'connecting', sub: 'Connecting to AI model' },
+        { main: 'generating', sub: 'Creating your visual content' },
+        { main: 'converting', sub: 'Finalizing output format' }
+      ];
+    } else if (isWebSearching) {
+      operationType = 'Web Search';
+      statusMessages = [
+        { main: 'preparing', sub: 'Initializing web search...' },
+        { main: 'searching', sub: 'Searching the web for information' },
+        { main: 'analyzing', sub: 'Analyzing search results' },
+        { main: 'generating', sub: 'Generating comprehensive response' }
+      ];
+    } else if (isDocumentAnalyzing) {
+      operationType = 'Document Analysis';
+      statusMessages = [
+        { main: 'preparing', sub: 'Initializing document analysis...' },
+        { main: 'analyzing', sub: 'Processing document content' },
+        { main: 'generating', sub: 'Extracting key information' },
+        { main: 'converting', sub: 'Formatting analysis results' }
+      ];
+    }
+    
+    if (statusMessages.length > 0) {
+      let currentIndex = 0;
+      
+      // Set initial message
+      const initialStatus = statusMessages[currentIndex].main as 'idle' | 'streaming' | 'ready' | 'preparing' | 'generating'|'connecting'|'converting' | 'analyzing' | 'searching';
+      setStatus(initialStatus);
+      setStatusSub(statusMessages[currentIndex].sub);
+      
+      console.log(`${operationType} started:`, initialStatus);
+      
+      const interval = setInterval(() => {
+        currentIndex++;
+        
+        if (currentIndex < statusMessages.length) {
+          const newStatus = statusMessages[currentIndex].main as 'idle' | 'streaming' | 'ready' | 'preparing' | 'generating'|'connecting'|'converting' | 'analyzing' | 'searching';
+          const newStatusSub = statusMessages[currentIndex].sub;
+          
+          console.log(`${operationType} - Updating status to:`, newStatus, "with sub:", newStatusSub);
+          setStatus(newStatus);
+          setStatusSub(newStatusSub);
+        } else {
+          console.log(`${operationType} - Status sequence complete, clearing interval`);
+          clearInterval(interval);
+        }
+      }, 4000); // Optimized timing for better UX
+      
+      return () => clearInterval(interval);
+    }
+  }, [isImageGenerating, isWebSearching, isDocumentAnalyzing]);
+
+  // Monitor status changes for debugging
+  useEffect(() => {
+    console.log("Status changed to:", status, "Sub:", statusSub);
+  }, [status, statusSub]);
 
   // Load messages from database when component mounts
   useEffect(() => {
@@ -85,10 +155,13 @@ export default function ChatPage() {
     try {
       setStatus('preparing'); // New status for initial phase
       setError(null);
-      
+      // setMessages(prev => [...prev, userMessage]);
 
       // Check if this is an image generation request
       const isImageGeneration = message.metadata?.isImageGeneration || false;
+      
+      // Check if this is a document analysis request
+      const isDocumentMode = message.metadata?.documentMode || false;
       
       // Add user message to chat
       const userMessage = {
@@ -113,6 +186,10 @@ export default function ChatPage() {
         try {
           console.log("isImageGeneration:", isImageGeneration);
 
+          // Set initial status for image generation
+          setIsImageGenerating(true);
+          setStatus('preparing');
+          setStatusSub('Initializing image generation...');
           
           // Generate image using AI service
 
@@ -149,6 +226,7 @@ export default function ChatPage() {
             console.log("assistantMessage:", assistantMessage);
             setMessages(prev => [...prev, assistantMessage]);
             setStatus('ready');
+            setIsImageGenerating(false);
             console.log("ImageGenMessages:", messages);
             // Save both messages to database
             try {
@@ -163,6 +241,7 @@ export default function ChatPage() {
         } catch (error: any) {
           console.error('Error generating image:', error);
           setStatus('idle');
+          setIsImageGenerating(false);
           
           // Provide detailed error message
           let errorMessage = 'Failed to generate image';
@@ -179,19 +258,25 @@ export default function ChatPage() {
         }
       } else {
         // Check if web search is enabled
+        console.log("Web Search message:", message);
         const isWebSearchEnabled = message.metadata?.enableWebSearch || false;
-        
+        console.log("isWebSearchEnabled:", isWebSearchEnabled);
         if (isWebSearchEnabled) {
           // Handle web search separately
           try {
             console.log('Performing web search for:', message.content);
+            
+            // Set web search status
+            setIsWebSearching(true);
+            setStatus('preparing');
+            setStatusSub('Initializing web search...');
             
             // Make web search API call using AiApiService
             const webSearchResult = await AiApiService.webSearchWithAI({
               query: message.content,
               userQuestion: message.content
             });
-            
+            console.log("webSearchResult:", webSearchResult);
             if (webSearchResult.success) {
               // Create assistant message with web search results
               const assistantMessageId = (Date.now() + 1).toString();
@@ -216,6 +301,7 @@ export default function ChatPage() {
 
               setMessages(prev => [...prev, assistantMessage]);
               setStatus('ready');
+              setIsWebSearching(false);
               
               // Save both messages to database
               try {
@@ -232,6 +318,7 @@ export default function ChatPage() {
           } catch (error: any) {
             console.error('Web search error:', error);
             setStatus('idle');
+            setIsWebSearching(false);
             
             // Create error message
             const errorMessage = {
@@ -246,8 +333,126 @@ export default function ChatPage() {
             return;
           }
         }
+        
+        // Handle document analysis
+        if (isDocumentMode && message.parts) {
+          try {
+            console.log('Performing document analysis for:', message.content);
+            
+            // Set document analysis status
+            setIsDocumentAnalyzing(true);
+            setStatus('preparing');
+            setStatusSub('Initializing document analysis...');
+            
+            // Find PDF files in the message parts
+            const pdfFiles = message.parts.filter((part: any) => 
+              part.type === 'file' && part.mediaType === 'application/pdf'
+            );
+            
+            if (pdfFiles.length === 0) {
+              throw new Error('No PDF files found for document analysis');
+            }
+            
+            // Analyze each PDF file
+            const analysisResults = [];
+            
+            for (const pdfFile of pdfFiles) {
+              console.log('Analyzing PDF:', pdfFile.filename);
+              
+              // Determine analysis type based on user question
+              let analysisType = 'general';
+              const userQuestion = message.content?.trim();
+              
+              if (userQuestion) {
+                if (userQuestion.toLowerCase().includes('summary') || userQuestion.toLowerCase().includes('summarize')) {
+                  analysisType = 'summary';
+                } else if (userQuestion.toLowerCase().includes('extract') || userQuestion.toLowerCase().includes('find')) {
+                  analysisType = 'extract';
+                } else {
+                  analysisType = 'qa';
+                }
+              }
+              console.log("analysisType:", analysisType);
+              // Call document analysis API
+              const analysisResult = await AiApiService.analyzeDocument({
+                pdfUrl: pdfFile.url,
+                question: userQuestion || 'Provide a comprehensive analysis of this document',
+                analysisType: analysisType as 'summary' | 'qa' | 'extract' | 'general'
+              });
+              console.log("analysisResult:", analysisResult);
+              if (analysisResult.success) {
+                analysisResults.push({
+                  filename: pdfFile.filename,
+                  analysis: analysisResult.data.analysis,
+                  documentInfo: analysisResult.data.documentInfo
+                });
+              } else {
+                throw new Error(`Failed to analyze ${pdfFile.filename}`);
+              }
+            }
+            
+            // Create assistant message with analysis results
+            const assistantMessageId = (Date.now() + 1).toString();
+            
+            let analysisText = '';
+            if (analysisResults.length === 1) {
+              analysisText = `## Document Analysis: ${analysisResults[0].filename}\n\n${analysisResults[0].analysis}\n\n**Document Info:** ${analysisResults[0].documentInfo.totalPages} pages, ${analysisResults[0].documentInfo.totalChunks} chunks processed`;
+            } else {
+              analysisText = `## Document Analysis Results\n\n`;
+              analysisResults.forEach((result, index) => {
+                analysisText += `### ${result.filename}\n\n${result.analysis}\n\n**Document Info:** ${result.documentInfo.totalPages} pages, ${result.documentInfo.totalChunks} chunks processed\n\n`;
+              });
+            }
+            
+            const assistantMessage = {
+              id: assistantMessageId,
+              role: 'assistant',
+              parts: [
+                { type: 'text', text: analysisText }
+              ],
+              metadata: {
+                analysisResults,
+                documentMode: true
+              },
+              createdAt: new Date()
+            };
 
-        // Normal message handling (non-image generation, non-web search)
+            setMessages(prev => [...prev, assistantMessage]);
+            setStatus('ready');
+            setIsDocumentAnalyzing(false);
+            
+            // Save both messages to database
+            try {
+              await saveMessage(chatId, userMessage);
+              await saveMessage(chatId, assistantMessage);
+            } catch (error) {
+              console.error('Failed to save document analysis messages to database:', error);
+            }
+            
+            return;
+            
+          } catch (error: any) {
+            console.error('Document analysis error:', error);
+            setStatus('idle');
+            setIsDocumentAnalyzing(false);
+            
+            // Create error message
+            const errorMessage = {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              parts: [{ type: 'text', text: 'Sorry, I encountered an error while analyzing the document. Please try again.' }],
+              createdAt: new Date()
+            };
+            
+            setMessages(prev => [...prev, errorMessage]);
+            setError(new Error('Document analysis failed'));
+            return;
+          }
+        }
+        // setMessages(prev => [...prev, userMessage]);
+        
+        console.log("normal message handling:",messages)
+        // Normal message handling (non-image generation, non-web search, non-document analysis)
         // Prepare assistant message ID (but don't add to messages yet)
         const assistantMessageId = (Date.now() + 1).toString();
 
@@ -255,85 +460,44 @@ export default function ChatPage() {
         const currentMessages = [...messages, userMessage];
         const apiMessages = currentMessages.map(msg => ({
           role: msg.role,
-          content: msg.parts?.find(part => part.type === 'text')?.text || msg.content || '',
+          content: msg.parts?.find((part: any) => part.type === 'text')?.text || msg.content || '',
           parts: msg.parts || []
         }));
 
         // Create abort controller
         const controller = new AbortController();
         streamControllerRef.current = controller;
-
-        // Make streaming request to your backend with optimizations
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/ai/chat/stream`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'text/plain',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-          },
-          body: JSON.stringify({ 
-            messages: apiMessages
-          }),
+        
+      
+        // Use ChatApiService for streaming request
+        const response = await ChatApiService.sendMessage(apiMessages, {
           signal: controller.signal,
-          // Optimize for streaming
-          cache: 'no-store',
-          keepalive: true,
-          priority: 'high',
+          userId: STATIC_USER_ID
         });
+        
         console.log("Request body sent:", JSON.stringify({ 
-          messages: apiMessages
+          messages: apiMessages,
+          userId: STATIC_USER_ID
         }, null, 2))
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        if (!response.body) {
-          throw new Error('No response body');
-        }
         setStatus('streaming');
 
-        // Optimized streaming with batched updates
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
+        // Add assistant message immediately
+        const assistantMessage = {
+          id: assistantMessageId,
+          role: 'assistant',
+          parts: [{ type: 'text', text: '' }],
+          createdAt: new Date()
+        };
+
+        setMessages(prev => [...prev, assistantMessage]);
+
+        // Use ChatApiService to parse streaming response
         let accumulatedText = '';
-        let isFirstChunk = true;
         let updateTimeout: NodeJS.Timeout | null = null;
 
-        while (true) {
-          const { done, value } = await reader.read();
-          
-          if (done) {
-            // Final update with complete text
-            setMessages(prev => prev.map(msg => 
-              msg.id === assistantMessageId 
-                ? { 
-                    ...msg, 
-                    parts: [{ type: 'text', text: accumulatedText }]
-                  }
-                : msg
-            ));
-            break;
-          }
-
-          // Set status to streaming and add assistant message when first chunk arrives
-          if (isFirstChunk) {
-            setStatus('streaming');
-            
-            const assistantMessage = {
-              id: assistantMessageId,
-              role: 'assistant',
-              parts: [{ type: 'text', text: '' }],
-              createdAt: new Date()
-            };
-            
-            setMessages(prev => [...prev, assistantMessage]);
-            isFirstChunk = false;
-          }
-
-          const chunk = decoder.decode(value, { stream: true });
+        await ChatApiService.parseStreamingResponse(response, (chunk: string) => {
           accumulatedText += chunk;
-
+          
           // Batch UI updates for better performance (update every 50ms instead of every chunk)
           if (updateTimeout) clearTimeout(updateTimeout);
           updateTimeout = setTimeout(() => {
@@ -346,7 +510,7 @@ export default function ChatPage() {
                 : msg
             ));
           }, 50);
-        }
+        });
 
         setStatus('ready');
 
@@ -1130,16 +1294,21 @@ console.log("Streamedmessages:",messages)
               ))}
             </div>
           )}
+     
+        
 
-          {status === 'streaming' && (
+          {/* {status!=='ready' && (
             <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-green-50 rounded-xl border border-green-200">
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <Loader2 className="w-5 h-5 animate-spin text-green-600" />
                 </div>
-                <span className="text-green-800 font-medium">
+                {status==='preparing' && <span className="text-green-800 font-medium">
+                     thinking...
+                </span>}
+                {status==='streaming' && <span className="text-green-800 font-medium">
                   ⚡ Streaming live...
-                </span>
+                </span>}
                 {responseTime && (
                   <span className="text-green-800 text-sm ml-auto">
                     Time: {(responseTime / 1000).toFixed(2)}s
@@ -1147,7 +1316,49 @@ console.log("Streamedmessages:",messages)
                 )}
               </div>
             </div>
-          )}
+          )} */}
+          
+          {/* Debug: Always show current status */}
+          {/* <div className="mt-2 p-2 bg-gray-100 text-xs text-gray-600 rounded">
+            Debug: Status="{status}", Sub="{statusSub}", ImageGen="{isImageGenerating.toString()}"
+          </div>
+           */}
+          {status!=='idle' && status!=='ready' && (
+    <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200 shadow-lg backdrop-blur-sm bg-opacity-80 animate-fadeIn">
+        <div className="flex items-center gap-3">
+            <div className="relative">
+                <Loader2 className="w-5 h-5 animate-spin text-green-600" />
+                <div className="absolute inset-0 bg-green-200 rounded-full opacity-0 animate-ping"></div>
+            </div>
+            <div className="flex flex-col">
+                <span className="text-green-800 font-medium flex items-center">
+                    {status==='preparing' && <span className="typing-animation">Processing</span>}
+                    {status==='generating' && <span className="typing-animation">Generating</span>}
+                    {status==='analyzing' && <span className="typing-animation">Analyzing</span>}
+                    {status==='searching' && <span className="typing-animation">Searching</span>}
+                    {status==='streaming' && <span className="typing-animation">Streaming</span>}
+                    {status==='connecting' && <span className="typing-animation">Connecting to AI</span>}
+                    {status==='converting' && <span className="typing-animation">Finalizing</span>}
+                    <span className="flex ml-1">
+                        <span className="animate-bounce delay-100">.</span>
+                        <span className="animate-bounce delay-300">.</span>
+                        <span className="animate-bounce delay-500">.</span>
+                    </span>
+                </span>
+                {statusSub && (
+                    <span className="text-green-600 text-sm mt-1 animate-fadeIn">
+                        {statusSub}
+                    </span>
+                )}
+            </div>
+            {responseTime && (
+                <span className="text-green-800 text-sm ml-auto bg-green-200 px-3 py-1 rounded-full shadow-sm animate-slideIn">
+                    Time: {(responseTime / 1000).toFixed(2)}s
+                </span>
+            )}
+        </div>
+    </div>
+)}
         </div>}
 
         {/* Input Form - Always fixed at bottom */}

@@ -368,7 +368,8 @@ export default function ChatInput({
           metadata: { 
             chatId,
             model,
-            enableWebSearch: webSearchEnabled
+            enableWebSearch: webSearchEnabled,
+            documentMode: documentMode // Add document mode to metadata
           },
         };
         console.log("messageToSend:",messageToSend)
@@ -393,7 +394,7 @@ export default function ChatInput({
       
       console.log("message:", messages);
     }
-  }, [input, files, uploadedFileMetadata, isProcessingPdf, status, chatId, model, imageGenerationMode, setInput, setUploadedFiles, sendMessage, messages]);
+  }, [input, files, uploadedFileMetadata, isProcessingPdf, status, chatId, model, imageGenerationMode, documentMode, webSearchEnabled, setInput, setUploadedFiles, sendMessage, messages]);
 
   const handleToolSelect = useCallback((key: string) => {
     console.log("handleToolSelect")

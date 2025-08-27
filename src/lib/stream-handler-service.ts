@@ -1,4 +1,4 @@
-import { ChatService } from './chat-service';
+import { ChatApiService } from '../services/api/chat';
 import { MemoryService } from './memory-service';
 import { MessageHandlerService } from './message-handler-service';
 
@@ -30,10 +30,7 @@ export class StreamHandlerService {
             setImmediate(async () => {
               try {
                 await Promise.all([
-                  ChatService.addMessage(chatId, {
-                    role: 'assistant',
-                    content: assistantResponse,
-                  }, userId),
+                  ChatApiService.addMessage(chatId, 'assistant', assistantResponse),
                   MemoryService.addMemory(
                     [{ role: 'assistant', content: assistantResponse }], 
                     userId,
@@ -60,10 +57,7 @@ export class StreamHandlerService {
             // Save partial response asynchronously
             setImmediate(async () => {
               try {
-                await ChatService.addMessage(chatId, {
-                  role: 'assistant',
-                  content: assistantResponse,
-                }, userId);
+                await ChatApiService.addMessage(chatId, 'assistant', assistantResponse);
               } catch (error) {
                 console.error('Failed to save partial message:', error);
               }
