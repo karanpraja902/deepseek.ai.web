@@ -64,7 +64,68 @@ export interface DocumentAnalysisResponse {
   };
 }
 
+export interface WeatherRequest {
+  location: string;
+  userQuestion?: string;
+}
+
+export interface WeatherResponse {
+  success: boolean;
+  data: {
+    weather: string;
+    temperature: number;
+    location: string;
+    humidity?: number;
+    windSpeed?: number;
+    description?: string;
+    aiResponse: string;
+    retrievedAt: string;
+  };
+}
+
+export interface ModelInfo {
+  key: string;
+  displayName: string;
+  provider: string;
+  isDefault: boolean;
+  isAvailable: boolean;
+}
+
+export interface AvailableModelsResponse {
+  success: boolean;
+  data: {
+    models: ModelInfo[];
+    defaultModel: string;
+  };
+}
+
 export class AiApiService {
+  static async getAvailableModels(): Promise<AvailableModelsResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ai/models`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+        const error = new Error(errorMessage);
+        (error as any).status = response.status;
+        (error as any).details = errorData.details;
+        (error as any).timestamp = errorData.timestamp;
+        throw error;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Get available models error:', error);
+      throw error;
+    }
+  }
+
   static async generateImage(params: ImageGenerationRequest): Promise<ImageGenerationResponse> {
     try {
       const response = await fetch(`${API_BASE_URL}/ai/generate-image`, {
@@ -144,6 +205,34 @@ export class AiApiService {
       return await response.json();
     } catch (error) {
       console.error('Document analysis error:', error);
+      throw error;
+    }
+  }
+
+  static async getWeather(params: WeatherRequest): Promise<WeatherResponse> {
+    try {
+      console.log("getWeather params:", params);
+      const response = await fetch(`${API_BASE_URL}/weather/with-ai`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+        const error = new Error(errorMessage);
+        (error as any).status = response.status;
+        (error as any).details = errorData.details;
+        (error as any).timestamp = errorData.timestamp;
+        throw error;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Weather error:', error);
       throw error;
     }
   }

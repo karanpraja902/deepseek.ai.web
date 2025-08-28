@@ -1,6 +1,8 @@
 'use client';
-import { uploadFilesClient, deleteFileFromCloudinary, UploadedClientFile } from '../../lib/client-cloudinary';
-import { PdfApiService, ChatApiService } from '../../services/api';
+import { uploadFilesClient, deleteFileFromCloudinary, UploadedClientFile } from '../../services/api/cloudinary';
+import { PdfApiService, ChatApiService, AiApiService } from '../../services/api';
+import type { ModelInfo } from '../../services/api/ai';
+import { getContextStatus } from '../../services/api/context-manager';
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { Paperclip, X, StopCircle, Loader2, Globe, Image as ImageIcon, Code2, FileText, Table, CloudSun, FlaskConical, Wrench, SlidersHorizontal, Settings, Search, Palette } from 'lucide-react';
 import DictationButton from '../ui/DictationButton';
@@ -40,6 +42,8 @@ export default function ChatInput({
   const [isSending, setIsSending] = useState(false); // Add loading state for sending message
   const [isRecording, setIsRecording] = useState(false); // Handle recording state changes
   const [isGeneratingImage, setIsGeneratingImage] = useState(false); // Add loading state for image generation
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(true);
 
   
   const [error, setError] = useState<string>('')
@@ -55,6 +59,7 @@ export default function ChatInput({
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [documentMode, setDocumentMode] = useState(false);
   const [imageGenerationMode, setImageGenerationMode] = useState(false);
+  const [weatherMode, setWeatherMode] = useState(false);
   const toolsMenuRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -105,35 +110,76 @@ export default function ChatInput({
   }, [status, input, files.length, isProcessingPdf, isSending]);
 
   const isFileUploadDisabled = useMemo(() => {
-    return webSearchEnabled || documentMode || imageGenerationMode;
-  }, [webSearchEnabled, documentMode, imageGenerationMode]);
+    return webSearchEnabled || documentMode || imageGenerationMode || weatherMode;
+  }, [webSearchEnabled, documentMode, imageGenerationMode, weatherMode]);
 
   const placeholderText = useMemo(() => {
     if (isRecording) return "Listening... Speak now...";
     if (isProcessingPdf) return "Processing document...";
     if (documentMode) return "Ask about your document...";
     if (imageGenerationMode) return "Describe the image you want to generate...";
+    if (weatherMode) return "Enter a city name (e.g., London, New York, Tokyo)...";
     return "Ask me anything...";
-  }, [isRecording, isProcessingPdf, documentMode, imageGenerationMode]);
+  }, [isRecording, isProcessingPdf, documentMode, imageGenerationMode, weatherMode]);
 
   const containerClassName = useMemo(() => {
     const baseClass = "flex gap-3 p-2 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border transition-all duration-300";
     if (isRecording) return `${baseClass} border-red-300 bg-red-50/80`;
     if (documentMode) return `${baseClass} border-blue-300 bg-blue-50/80`;
     if (imageGenerationMode) return `${baseClass} border-purple-300 bg-purple-50/80`;
+    if (weatherMode) return `${baseClass} border-cyan-300 bg-cyan-50/80`;
     return `${baseClass} border-white/20`;
-  }, [isRecording, documentMode, imageGenerationMode]);
+  }, [isRecording, documentMode, imageGenerationMode, weatherMode]);
 
-  const modelOptions = useMemo(() => [
-    { value: 'google', label: 'Google Gen AI ' },
-    { value: 'openrouter:deepseek/deepseek-r1-0528:free', label: 'DeepSeek R1' },
-    { value: 'openrouter:nvidia/llama-3.1-nemotron-ultra-253b-v1:free', label: 'Llama 3.1' },
-    { value: 'openrouter:openai/gpt-oss-20b:free', label: 'GPT-Oss-20b' },
-  ], []);
+  // Load available models on component mount
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        setIsLoadingModels(true);
+        const response = await AiApiService.getAvailableModels();
+        if (response.success) {
+          setAvailableModels(response.data.models);
+          // Set default model if not already set
+          if (!model && response.data.defaultModel) {
+            setModel(response.data.defaultModel);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load models:', error);
+        // Fallback to static models
+        setAvailableModels([
+          { key: 'google', displayName: 'Google Gemini 2.5 Flash', provider: 'google', isDefault: true, isAvailable: true }
+        ]);
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+
+    loadModels();
+  }, []); // Only run once on mount, not when model changes
+
+  // Debug model changes
+  useEffect(() => {
+    console.log('🔄 Model changed in ChatInput:', model);
+  }, [model]);
+
+  const modelOptions = useMemo(() => 
+    availableModels.map(m => ({ 
+      value: m.key, 
+      label: m.displayName,
+      provider: m.provider,
+      isDefault: m.isDefault,
+      isAvailable: m.isAvailable
+    })), [availableModels]);
 
   const selectedModelLabel = useMemo(() => {
     return modelOptions.find(m => m.value === model)?.label || 'Google Gen AI (default)';
   }, [modelOptions, model]);
+
+  // Context status check
+  const contextStatus = useMemo(() => {
+    return getContextStatus(messages, model);
+  }, [messages, model]);
 
   const toolPrompts = useMemo(() => ({
     code: 'Write code for: ',
@@ -295,6 +341,7 @@ export default function ChatInput({
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     console.log("handleSubmit")
+    console.log("handleSubmit model:", model)
     setIsSending(true);
     e.preventDefault();
     
@@ -307,6 +354,7 @@ export default function ChatInput({
         try {
           setIsGeneratingImage(true);
           console.log('Generating image with prompt:', input);
+          
           
           // Create user message with the prompt and image generation flag
           const userMessage = {
@@ -361,7 +409,7 @@ export default function ChatInput({
           mediaType: f.mediaType,
           filename: f.filename
         }));
-
+        console.log("submitting model:", model)
         const messageToSend = {
           content: input.trim(),
           parts: [...textPart, ...fileParts],
@@ -369,7 +417,8 @@ export default function ChatInput({
             chatId,
             model,
             enableWebSearch: webSearchEnabled,
-            documentMode: documentMode // Add document mode to metadata
+            documentMode: documentMode, // Add document mode to metadata
+            isWeatherEnabled: weatherMode // Add weather mode to metadata
           },
         };
         console.log("messageToSend:",messageToSend)
@@ -379,6 +428,7 @@ export default function ChatInput({
         setPreFile([]);
         setUploadedFiles([]);
         setDocumentMode(false); // Reset document mode after sending
+        setWeatherMode(false); // Reset weather mode after sending
 
         try {
           console.log('Calling sendMessage...');
@@ -399,7 +449,7 @@ export default function ChatInput({
   const handleToolSelect = useCallback((key: string) => {
     console.log("handleToolSelect")
     if (key === 'web') {
-      if (!documentMode && !imageGenerationMode) { // Only allow web search if not in document or image mode
+      if (!documentMode && !imageGenerationMode && !weatherMode) { // Only allow web search if not in other modes
         setWebSearchEnabled(!webSearchEnabled);
       }
       setShowTools(false);
@@ -407,7 +457,7 @@ export default function ChatInput({
     }
     
     if (key === 'image') {
-      if (!documentMode && !imageGenerationMode) { // Only allow image upload if not in document or image generation mode
+      if (!documentMode && !imageGenerationMode && !weatherMode) { // Only allow image upload if not in other modes
         setShowTools(false);
         fileInputRef.current?.click();
       }
@@ -415,9 +465,19 @@ export default function ChatInput({
     }
 
     if (key === 'generate-image') {
-      if (!documentMode && !webSearchEnabled) { // Only allow image generation if not in document or web search mode
+      if (!documentMode && !webSearchEnabled && !weatherMode) { // Only allow image generation if not in other modes
         setImageGenerationMode(!imageGenerationMode);
         setWebSearchEnabled(false);
+      }
+      setShowTools(false);
+      return;
+    }
+
+    if (key === 'weather') {
+      if (!documentMode && !webSearchEnabled && !imageGenerationMode) { // Only allow weather if not in other modes
+        setWeatherMode(!weatherMode);
+        setWebSearchEnabled(false);
+        setImageGenerationMode(false);
       }
       setShowTools(false);
       return;
@@ -432,19 +492,25 @@ export default function ChatInput({
       setDocumentMode(true);
       setWebSearchEnabled(false); // Disable web search when document mode is enabled
       setImageGenerationMode(false); // Disable image generation when document mode is enabled
+      setWeatherMode(false); // Disable weather when document mode is enabled
       setShowTools(false);
       documentInputRef.current?.click();
       return;
     }
     
-    if (!documentMode && !imageGenerationMode) { // Only add prompts if not in document or image generation mode
+    if (!documentMode && !imageGenerationMode && !weatherMode) { // Only add prompts if not in other modes
       const p = toolPrompts[key as keyof typeof toolPrompts] ?? '';
       setInput(input ? input + '\n' + p : p);
     }
     setShowTools(false);
-  }, [documentMode, webSearchEnabled, imageGenerationMode, preFile.length, toolPrompts, input, setInput]);
+  }, [documentMode, webSearchEnabled, imageGenerationMode, weatherMode, preFile.length, toolPrompts, input, setInput]);
 
   const handleModelSelect = (modelValue: string) => {
+    console.log('🔄 Model selection:', { 
+      previous: model, 
+      new: modelValue, 
+      available: availableModels.map(m => m.key) 
+    });
     setModel(modelValue);
     setShowModelMenu(false);
   };
@@ -489,10 +555,29 @@ export default function ChatInput({
 
 
 
-  console.log("ChatInputModel:",model)
+  console.log("ChatInputModel:", model, "Available models:", availableModels.map(m => ({ key: m.key, available: m.isAvailable })))
 
   return (
     <div className={`sticky bottom-0 bg-gradient-to-b from-transparent to-white/50 pb-4`}>
+      {/* Context Warning */}
+      {contextStatus.status !== 'ok' && (
+        <div className={`mx-4 mb-3 p-3 rounded-lg text-sm flex items-center gap-2 ${
+          contextStatus.status === 'danger' 
+            ? 'bg-red-100 border border-red-200 text-red-700' 
+            : 'bg-yellow-100 border border-yellow-200 text-yellow-700'
+        }`}>
+          <div className="flex-1">
+            <span className="font-medium">
+              {contextStatus.percentage}% of context used
+            </span>
+            <span className="ml-2">{contextStatus.message}</span>
+          </div>
+          <span className="text-xs opacity-75">
+            {contextStatus.currentTokens.toLocaleString()}/{contextStatus.limit.toLocaleString()} tokens
+          </span>
+        </div>
+      )}
+
       {/* Error Toast Notification */}
       {showErrorToast && error && (
         <div className="fixed top-4 right-4 z-50 max-w-md">
@@ -626,34 +711,36 @@ export default function ChatInput({
                 <Globe className="w-5 h-5" />
               ) : imageGenerationMode ? (
                 <Palette className="w-5 h-5 text-purple-600" />
+              ) : weatherMode ? (
+                <CloudSun className="w-5 h-5 text-cyan-600" />
               ) : (
                 <SlidersHorizontal className="w-5 h-5" />
               )}
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                {documentMode ? 'Document Mode' : imageGenerationMode ? 'Image Generation Mode' : 'Tools'}
+                {documentMode ? 'Document Mode' : imageGenerationMode ? 'Image Generation Mode' : weatherMode ? 'Weather Mode' : 'Tools'}
               </div>
             </button>
             
             {showTools && (
               <div className="absolute bottom-full right-0 mb-2 w-64 bg-white rounded-xl border border-gray-200 shadow-lg p-2 z-20">
-                <div className="flex flex-col">
-                  <button 
-                    onClick={() => handleToolSelect('web')} 
-                    disabled={documentMode}
-                    className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                      documentMode
-                        ? 'opacity-50 cursor-not-allowed text-gray-400'
-                        : webSearchEnabled 
-                        ? 'bg-blue-200 text-blue-700 hover:bg-blue-200' 
-                        : 'hover:bg-blue-100'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Globe className="w-4 h-4" />
-                      Web Search
-                      {webSearchEnabled && !documentMode && <span className="text-xs font-medium">(ON)</span>}
-                    </span>
-                  </button>
+                              <div className="flex flex-col">
+                <button 
+                  onClick={() => handleToolSelect('web')} 
+                  disabled={documentMode || weatherMode}
+                  className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    documentMode || weatherMode
+                      ? 'opacity-50 cursor-not-allowed text-gray-400'
+                      : webSearchEnabled 
+                      ? 'bg-blue-200 text-blue-700 hover:bg-blue-200' 
+                      : 'hover:bg-blue-100'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Globe className="w-4 h-4" />
+                    Web Search
+                    {webSearchEnabled && !documentMode && !weatherMode && <span className="text-xs font-medium">(ON)</span>}
+                  </span>
+                </button>
                
                   
                   <button 
@@ -673,9 +760,9 @@ export default function ChatInput({
 
                   <button 
                     onClick={() => handleToolSelect('generate-image')} 
-                    disabled={documentMode || webSearchEnabled}
+                    disabled={documentMode || webSearchEnabled || weatherMode}
                     className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                      documentMode || webSearchEnabled
+                      documentMode || webSearchEnabled || weatherMode
                         ? 'opacity-50 cursor-not-allowed text-gray-400'
                         : imageGenerationMode 
                         ? 'bg-purple-200 text-purple-700 hover:bg-purple-200' 
@@ -691,20 +778,26 @@ export default function ChatInput({
                
                   <button 
                     onClick={() => handleToolSelect('weather')} 
-                    disabled={documentMode || imageGenerationMode}
+                    disabled={documentMode || imageGenerationMode || webSearchEnabled}
                     className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                      documentMode || imageGenerationMode
+                      documentMode || imageGenerationMode || webSearchEnabled
                         ? 'opacity-50 cursor-not-allowed text-gray-400' 
-                        : 'hover:bg-blue-100'
+                        : weatherMode
+                        ? 'bg-cyan-200 text-cyan-700 hover:bg-cyan-200'
+                        : 'hover:bg-cyan-100'
                     }`}
                   >
-                    <span className="flex items-center gap-2"><CloudSun className="w-4 h-4" />Weather</span>
+                    <span className="flex items-center gap-2">
+                      <CloudSun className="w-4 h-4" />
+                      Weather
+                      {weatherMode && <span className="text-xs font-medium">(ON)</span>}
+                    </span>
                   </button>
                   <button 
                     onClick={() => handleToolSelect('research')} 
-                    disabled={documentMode || imageGenerationMode}
+                    disabled={documentMode || imageGenerationMode || weatherMode}
                     className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                      documentMode || imageGenerationMode
+                      documentMode || imageGenerationMode || weatherMode
                         ? 'opacity-50 cursor-not-allowed text-gray-400' 
                         : 'hover:bg-blue-100'
                     }`}
@@ -722,25 +815,56 @@ export default function ChatInput({
               type="button"
               onClick={handleModelMenuToggle}
               className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg hover:text-blue-600 hover:border-blue-300 transition-colors relative group/tooltip"
-              title="Model"
+              title={`Current: ${selectedModelLabel}`}
             >
-              Model
+              <div className="flex items-center gap-2">
+                
+                <span className="text-xs bg-blue-100 px-2 py-1 rounded text-blue-700">
+                  {modelOptions.find(m => m.value === model)?.provider === 'google' ? modelOptions.find(m => m.value === model)?.label : modelOptions.find(m => m.value === model)?.label}
+                </span>
+              </div>
             </button>
             {showModelMenu && (
-              <div className="absolute bottom-full right-0 mb-2 w-72 bg-white rounded-xl border border-gray-200 shadow-lg p-2 z-20">
+              <div className="absolute bottom-full right-0 mb-2 w-80 bg-white rounded-xl border border-gray-200 shadow-lg p-2 z-20">
                 <div className="p-2 text-xs text-gray-700">Current: {selectedModelLabel}</div>
-                <div className="flex flex-col">
-                  {modelOptions.map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => handleModelSelect(opt.value)}
-                      className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-200 text-gray-500 ${model === opt.value ? 'bg-blue-100 text-blue-100' : ''}`}
-                    >
-                      <span className="flex items-center gap-2"><LuCpu className="w-4 h-4" />{opt.label}</span>
-                      {model === opt.value && <span className="text-xs">Selected</span>}
-                    </button>
-                  ))}
-                </div>
+                {isLoadingModels ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <span className="text-sm text-gray-500">Loading models...</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col">
+                    {modelOptions.map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => opt.isAvailable ? handleModelSelect(opt.value) : null}
+                        disabled={!opt.isAvailable}
+                        className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                          !opt.isAvailable 
+                            ? 'opacity-50 cursor-not-allowed text-gray-400' 
+                            : model === opt.value 
+                            ? 'bg-blue-100 text-blue-700' 
+                            : 'hover:bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <LuCpu className="w-4 h-4" />
+                          <div className="text-left">
+                            <div className="text-sm font-medium">{opt.label}</div>
+                            <div className="text-xs text-gray-500">
+                              {opt.provider === 'google' ? 'Google AI' : 'OpenRouter'}
+                              {opt.isDefault && ' (Default)'}
+                              {!opt.isAvailable && ' (Unavailable)'}
+                            </div>
+                          </div>
+                        </div>
+                        {model === opt.value && opt.isAvailable && (
+                          <span className="text-xs bg-blue-200 px-2 py-1 rounded">Selected</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -759,16 +883,20 @@ export default function ChatInput({
               documentMode 
                 ? "Image upload disabled in document mode"
                 : webSearchEnabled 
-                ? "File upload disabled when web search is enabled" 
+                ? "File upload disabled when web search is enabled"
+                : weatherMode
+                ? "File upload disabled in weather mode"
                 : "Attach files"
             }
           >
             <Paperclip className="w-5 h-5" />
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
               {documentMode 
                 ? "Image upload disabled in document mode"
                 : webSearchEnabled 
-                ? "File upload disabled when web search is enabled" 
+                ? "File upload disabled when web search is enabled"
+                : weatherMode
+                ? "File upload disabled in weather mode"
                 : "Attach Files"
             }
             </div>

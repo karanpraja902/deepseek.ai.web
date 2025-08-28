@@ -64,16 +64,30 @@ export class ChatApiService {
 
   static async addMessage(chatId: string, role: string, content: string, files?: any[], parts?: any[], metadata?: any) {
     try {
+      // Validate input before sending
+      if (!chatId || !role || !content?.trim()) {
+        throw new Error('Invalid message data: missing required fields');
+      }
+
+      const messageData = { 
+        role, 
+        content: content.trim(), 
+        files: files || [], 
+        parts: parts || [], 
+        metadata: metadata || {} 
+      };
+
       const response = await fetch(`${API_BASE_URL}/chat/${chatId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ role, content, files, parts, metadata }),
+        body: JSON.stringify(messageData),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to add message');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Failed to add message: ${response.status} ${response.statusText}${errorData.details ? ` - ${JSON.stringify(errorData.details)}` : ''}`);
       }
 
       return await response.json();
@@ -144,7 +158,7 @@ export class ChatApiService {
     }
   }
 
-  static async sendMessage(messages: any[], options?: { signal?: AbortSignal; enableWebSearch?: boolean; userId?: string }) {
+  static async sendMessage(messages: any[], options?: { signal?: AbortSignal; enableWebSearch?: boolean; userId?: string; model?: string }) {
     try {
       const response = await fetch(`${API_BASE_URL}/ai/chat/stream`, {
         method: 'POST',
@@ -154,7 +168,8 @@ export class ChatApiService {
         body: JSON.stringify({ 
           messages,
           enableWebSearch: options?.enableWebSearch || false,
-          userId: options?.userId
+          userId: options?.userId,
+          model: options?.model
         }),
         signal: options?.signal,
       });
@@ -166,6 +181,8 @@ export class ChatApiService {
         (error as any).status = response.status;
         (error as any).details = errorData.details;
         (error as any).timestamp = errorData.timestamp;
+        (error as any).errorType = errorData.errorType;
+        (error as any).response = { status: response.status, data: errorData };
         throw error;
       }
 
@@ -195,6 +212,23 @@ export class ChatApiService {
 
         const chunk = decoder.decode(value, { stream: true });
         
+        // Check for error responses in the stream
+        if (chunk.includes('"error"') || chunk.includes('"success":false')) {
+          try {
+            const errorData = JSON.parse(chunk);
+            if (errorData.error) {
+              const error = new Error(errorData.error);
+              (error as any).status = response.status;
+              (error as any).details = errorData.details;
+              (error as any).timestamp = errorData.timestamp;
+              (error as any).errorType = errorData.errorType;
+              throw error;
+            }
+          } catch (parseError) {
+            // If we can't parse as JSON, continue with normal processing
+          }
+        }
+        
         // Handle different streaming formats
         if (chunk.startsWith('data: ')) {
           // Server-Sent Events format
@@ -220,6 +254,9 @@ export class ChatApiService {
           onChunk(chunk);
         }
       }
+    } catch (error) {
+      // Re-throw the error to be handled by the caller
+      throw error;
     } finally {
       reader.releaseLock();
     }
