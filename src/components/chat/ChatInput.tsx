@@ -557,7 +557,7 @@ export default function ChatInput({
   console.log("ChatInputModel:", model, "Available models:", availableModels.map(m => ({ key: m.key, available: m.isAvailable })))
 
   return (
-    <div className={`sticky bottom-0 z-10 pb-6 px-60 bg-gray-700/80`}>
+    <div className={`sticky bottom-0 z-10 pb-4 sm:pb-6 px-4 sm:px-8 md:px-16 lg:px-32 xl:px-60 bg-gray-700/80`}>
       {/* Context Warning */}
       {contextStatus.status !== 'ok' && (
         <div className={`mx-4 mb-3 p-3 rounded-lg text-sm flex items-center gap-2 border border-gray-400 shadow-md ${
@@ -618,10 +618,10 @@ export default function ChatInput({
                     {file.type === 'application/pdf' && (
                       <FileText className="w-4 h-4 text-red-600" />
                     )}
-                    <div className="text-sm text-gray-600 truncate max-w-[120px]">
+                    <div className="text-sm text-gray-600 truncate max-w-[100px] sm:max-w-[120px]">
                       {file.name}
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-gray-400 hidden sm:block">
                       {(file.size / (1024 * 1024)).toFixed(2)}MB
                     </div>
                     {(!isUploading && !isProcessingPdf && !isDeleting) && (
@@ -723,7 +723,7 @@ export default function ChatInput({
             </button>
             
             {showTools && (
-              <div className="absolute bottom-full right-0 mb-2 w-64 bg-gray-600/80 rounded-xl border border-gray-200 shadow-lg p-2 z-20">
+              <div className="absolute bottom-full right-0 mb-2 w-48 sm:w-64 bg-gray-600/80 rounded-xl border border-gray-200 shadow-lg p-2 z-20">
                               <div className="flex flex-col">
                 <button 
                   onClick={() => handleToolSelect('web')} 
@@ -826,7 +826,7 @@ export default function ChatInput({
               </div>
             </button>
             {showModelMenu && (
-              <div className="absolute bottom-full right-0 mb-2 w-80 bg-gray-600/80 rounded-xl border border-gray-200 shadow-lg p-2 z-20">
+              <div className="absolute bottom-full right-0 mb-2 w-64 sm:w-80 bg-gray-600/80 rounded-xl border border-gray-200 shadow-lg p-2 z-20">
                 <div className="p-2 text-xs text-gray-100">Current: {selectedModelLabel}</div>
                 {isLoadingModels ? (
                   <div className="flex items-center justify-center py-4">

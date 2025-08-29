@@ -99,6 +99,82 @@ body {
   scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
 }
 
+/* ===== RESPONSIVE DESIGN ===== */
+
+/* Mobile-first responsive design */
+@media (max-width: 640px) {
+  /* Mobile-specific styles */
+  .chat-scrollbar {
+    scrollbar-width: none; /* Hide scrollbar on mobile */
+  }
+  
+  .chat-scrollbar::-webkit-scrollbar {
+    display: none; /* Hide scrollbar on mobile */
+  }
+  
+  /* Ensure touch-friendly button sizes */
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve text readability on small screens */
+  .markdown {
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  
+  /* Optimize spacing for mobile */
+  .mobile-optimized {
+    padding: 0.75rem;
+    margin: 0.5rem;
+  }
+}
+
+/* Tablet styles */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .tablet-optimized {
+    padding: 1rem;
+    margin: 0.75rem;
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 1025px) {
+  .desktop-optimized {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .high-dpi {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Landscape mobile optimization */
+@media (max-width: 640px) and (orientation: landscape) {
+  .landscape-mobile {
+    padding: 0.5rem;
+    margin: 0.25rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-optimized {
+    background: white !important;
+    color: black !important;
+  }
+}
+
 /* Custom scrollbar for specific elements */
 .chat-scrollbar::-webkit-scrollbar {
   width: 6px;

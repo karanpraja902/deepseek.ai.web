@@ -8,10 +8,11 @@ import Weather from '../../../../components/weather/Weather';
 import type { UploadedClientFile } from '../../../../services/api/cloudinary';
 import { uploadFilesClient } from '../../../../services/api/cloudinary';
 import { toast } from 'react-hot-toast';
-import { Loader2, RefreshCw, Copy, Check, Edit, X, FileText, Download, Eye, StopCircle } from 'lucide-react';
+import { Loader2, RefreshCw, Copy, Check, Edit, X, FileText, Download, Eye, StopCircle, Menu } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Sidebar from '../../../../components/ui/sidebar';
+import Header from '../../../../components/ui/header';
 
 // Static user ID for the demo
 const STATIC_USER_ID = 'static_user_karan';
@@ -1164,6 +1165,7 @@ export default function ChatPage() {
 
   // Sidebar functions
   const toggleSidebar = () => {
+    console.log("toggleSidebar");
     setSidebarOpen(!sidebarOpen);
   };
 
@@ -1341,7 +1343,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
+      {/* Sidebar - Always rendered, but shown differently based on screen size */}
       <Sidebar
         isOpen={sidebarOpen}
         onToggle={toggleSidebar}
@@ -1356,40 +1358,63 @@ export default function ChatPage() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden bg-gray-700/80">
+        {/* Mobile Header with Menu Button - Only for mobile screens */}
+        <div className="lg:hidden bg-gray-800/90 backdrop-blur-sm border-b border-gray-700 p-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={toggleSidebar}
+              className="p-2 rounded-md hover:bg-gray-700 text-gray-300 transition-colors"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <h1 className="text-lg font-semibold text-white">AI Chat</h1>
+            <div className="w-10" /> {/* Spacer for centering */}
+          </div>
+        </div>
+
+        {/* Responsive Header - Only for tablet screens (not mobile, not laptop+) */}
+        <div className="hidden md:block lg:hidden">
+          <Header
+            title="AI Chat"
+            onMenuToggle={toggleSidebar}
+            isMenuOpen={sidebarOpen}
+            userId={STATIC_USER_ID}
+          />
+        </div>
+
         {/* Chat content */}
         <div className="flex-1 overflow-hidden flex flex-col bg-gray-700/80">
           <div className="flex-1 flex flex-col w-full min-h-0">
             {/* Welcome Header */}
             {!messages.length && (
-              <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-gray-600 bg-clip-text text-transparent mb-2">
-            AI Chat Assistant
-          </h1>
-          <p className="text-gray-200 text-lg">
-            Powered by Google&apos;s Generative AI with Memory
-          </p>
-          <p className="text-sm text-gray-200 mt-2">
-            Chat ID: {chatId} | User: {STATIC_USER_ID}
-          </p>
+              <div className="text-center mb-8 px-4">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-gray-600 bg-clip-text text-transparent mb-2">
+                  AI Chat Assistant
+                </h1>
+                <p className="text-gray-200 text-base sm:text-lg">
+                  Powered by Google&apos;s Generative AI with Memory
+                </p>
+                <p className="text-xs sm:text-sm text-gray-200 mt-2">
+                  Chat ID: {chatId} | User: {STATIC_USER_ID}
+                </p>
 
-          {/* User Profile Display */}
-          {userProfile && (
-            <div className="mt-4 p-3 bg-blue-900/30 border border-blue-400/30 rounded-lg">
-              <div className="text-sm text-blue-200">
-                <strong>Learning Profile:</strong> {userProfile.preferences?.conversationStyle || 'casual'} style,
-                {userProfile.preferences?.topics?.length || 0} preferred topics
-              </div>
-            </div>
-          )}
+                {/* User Profile Display */}
+                {userProfile && (
+                  <div className="mt-4 p-3 bg-blue-900/30 border border-blue-400/30 rounded-lg mx-4">
+                    <div className="text-sm text-blue-200">
+                      <strong>Learning Profile:</strong> {userProfile.preferences?.conversationStyle || 'casual'} style,
+                      {userProfile.preferences?.topics?.length || 0} preferred topics
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
         {/* Dynamic Title Box - Sticky header that stays visible when scrolling */}
         {messages.length > 0 && status === 'ready' && (
-
           <div className="sticky flex justify-center top-0 z-10 bg-gray-700/80">
             <div
-              className="p-4 rounded-2xl shadow-sm group bg-gray-600/80 text-gray-200 cursor-pointer hover:shadow-md transition-shadow"
+              className="mx-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-sm group bg-gray-600/80 text-gray-200 cursor-pointer hover:shadow-md transition-shadow max-w-full"
               onClick={() => {
                 if (!isEditingTitle) {
                   setIsEditingTitle(true);
@@ -1398,12 +1423,12 @@ export default function ChatPage() {
               }}
             >
               {isEditingTitle ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-center gap-2">
                   <input
                     type="text"
                     value={editedTitle}
                     onChange={(e) => setEditedTitle(e.target.value)}
-                    className="text-xl font-bold text-gray-200 bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600"
+                    className="text-lg sm:text-xl font-bold text-gray-200 bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600 text-center sm:text-left w-full sm:w-auto"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -1419,19 +1444,31 @@ export default function ChatPage() {
                       // Here you could save the new title to your backend if needed
                     }}
                   />
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsEditingTitle(false);
-                      // Here you could save the new title to your backend if needed
-                    }}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    Save
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsEditingTitle(false);
+                        // Here you could save the new title to your backend if needed
+                      }}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsEditingTitle(false);
+                        setEditedTitle(getConversationTitle(messages));
+                      }}
+                      className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <h2 className="text-xl font-bold text-gray-200 scroll-m-20">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-200 scroll-m-20 text-center px-2">
                   {editedTitle ? editedTitle : getConversationSubtitle(messages)}
                 </h2>
               )}
@@ -1444,7 +1481,7 @@ export default function ChatPage() {
         <div className="flex-1 flex flex-col overflow-hidden bg-gray-700/80">
         {messages.length > 0 && (
           <div
-            className="bg-gray-700/80 px-55 backdrop-blur-sm flex-1 overflow-y-auto min-h-0 overflow-x-hidden chat-scrollbar "
+            className="bg-gray-700/80 px-4 sm:px-8 md:px-12 lg:px-16 backdrop-blur-sm flex-1 overflow-y-auto min-h-0 overflow-x-hidden chat-scrollbar"
             ref={chatContainerRef}
           >
           {error ? (
@@ -1950,26 +1987,26 @@ export default function ChatPage() {
 
         {/* Scroll to Bottom Button */}
         {showScrollToBottom && (
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-4 px-4">
             <button
               onClick={() => {
                 forceScrollToBottom();
                 setShowScrollToBottom(false);
               }}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg transition-all duration-200 flex items-center gap-2 hover:scale-105"
+              className="px-3 sm:px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg transition-all duration-200 flex items-center gap-2 hover:scale-105 text-sm sm:text-base"
             >
               <span>↓</span>
-              <span>Scroll to Bottom</span>
+              <span className="hidden sm:inline">Scroll to Bottom</span>
             </button>
           </div>
         )}
 
         {/* Auto-scroll indicator during streaming */}
         {status === 'streaming' && !userScrolledUp && (
-          <div className="flex justify-center mb-2">
+          <div className="flex justify-center mb-2 px-4">
             <div className="px-3 py-1 bg-gray-500 text-white text-xs rounded-full flex items-center gap-1 animate-pulse">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></span>
-              <span>Auto-scrolling</span>
+              <span className="hidden sm:inline">Auto-scrolling</span>
             </div>
           </div>
         )}
@@ -1995,8 +2032,8 @@ export default function ChatPage() {
 
       {/* Preview Modal */}
       {preview && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-auto mx-2">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
               <h3 className="text-lg font-semibold">{preview.filename}</h3>
               <button
@@ -2014,12 +2051,12 @@ export default function ChatPage() {
                     alt={preview.filename || 'Preview'}
                     className="max-w-full h-auto rounded-lg"
                   />
-                  <div className="mt-4 flex justify-center gap-2">
+                  <div className="mt-4 flex flex-col sm:flex-row justify-center gap-2">
                     <a
                       href={preview.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-center"
                     >
                       Open in New Tab
                     </a>
@@ -2034,17 +2071,25 @@ export default function ChatPage() {
               ) : preview.type === 'document' ? (
                 <div className="text-center">
                   <div className="mb-4">
-                    <FileText className="w-16 h-16 mx-auto text-gray-400" />
+                    <FileText className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-gray-400" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">{preview.filename}</h3>
-                  <a
-                    href={preview.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                  >
-                    Open Document
-                  </a>
+                  <h3 className="text-base sm:text-lg font-semibold mb-2 text-center">{preview.filename}</h3>
+                  <div className="flex flex-col sm:flex-row justify-center gap-2">
+                    <a
+                      href={preview.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-center"
+                    >
+                      Open Document
+                    </a>
+                    <button
+                      onClick={() => setPreview(null)}
+                      className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
               ) : null}
             </div>
