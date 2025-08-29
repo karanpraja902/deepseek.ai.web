@@ -558,10 +558,10 @@ export default function ChatInput({
   console.log("ChatInputModel:", model, "Available models:", availableModels.map(m => ({ key: m.key, available: m.isAvailable })))
 
   return (
-    <div className={`sticky bottom-0 bg-gradient-to-b from-transparent to-white/50 pb-4`}>
+    <div className={`sticky bottom-0 z-10 pb-6 px-8 bg-white`}>
       {/* Context Warning */}
       {contextStatus.status !== 'ok' && (
-        <div className={`mx-4 mb-3 p-3 rounded-lg text-sm flex items-center gap-2 ${
+        <div className={`mx-4 mb-3 p-3 rounded-lg text-sm flex items-center gap-2 border border-gray-400 shadow-md ${
           contextStatus.status === 'danger' 
             ? 'bg-red-100 border border-red-200 text-red-700' 
             : 'bg-yellow-100 border border-yellow-200 text-yellow-700'

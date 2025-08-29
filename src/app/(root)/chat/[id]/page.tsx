@@ -11,6 +11,7 @@ import { toast } from 'react-hot-toast';
 import { Loader2, RefreshCw, Copy, Check, Edit, X, FileText, Download, Eye, StopCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import Sidebar from '../../../../components/ui/sidebar';
 
 // Static user ID for the demo
 const STATIC_USER_ID = 'static_user_karan';
@@ -29,7 +30,7 @@ export default function ChatPage() {
   const [responseTime, setResponseTime] = useState<number | null>(null);
   const [isMeasuringResponse, setIsMeasuringResponse] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
-  const [status, setStatus] = useState<'idle' | 'streaming' | 'ready' | 'preparing' | 'generating' | 'connecting' | 'converting' | 'analyzing' | 'searching' | ''>('idle');
+  const [status, setStatus] = useState<'idle' | 'streaming' | 'ready' | 'preparing' | 'generating' | 'connecting' | 'converting' | 'thinking' | 'analyzing' | 'searching' | ''>('idle');
   const [statusSub, setStatusSub] = useState<string>('');
   const [error, setError] = useState<any>(null);
   const streamControllerRef = useRef<AbortController | null>(null);
@@ -86,6 +87,11 @@ export default function ChatPage() {
         { main: 'generating', sub: 'Extracting key information' },
         { main: 'converting', sub: 'Formatting analysis results' }
       ];
+    } else if (status === 'preparing') {
+      statusMessages = [
+        { main: 'preparing', sub: 'connecting to AI model...' },
+        { main: 'thinking', sub: 'Finalizing output format..' },
+      ];
     }
 
     if (statusMessages.length > 0) {
@@ -116,7 +122,7 @@ export default function ChatPage() {
 
       return () => clearInterval(interval);
     }
-  }, [isImageGenerating, isWebSearching, isDocumentAnalyzing]);
+  }, [isImageGenerating, isWebSearching, isDocumentAnalyzing, status]);
 
   // Monitor status changes for debugging
   useEffect(() => {
@@ -572,7 +578,7 @@ export default function ChatPage() {
         // Optimized streaming with immediate UI updates and background saves
         let lastUpdateTime = 0;
         let chunkBuffer = '';
-        
+
         await ChatApiService.parseStreamingResponse(response, (chunk: string) => {
           accumulatedText += chunk;
           chunkBuffer += chunk;
@@ -847,6 +853,11 @@ export default function ChatPage() {
   const [isUserInitialized, setIsUserInitialized] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
+  
+  // Sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [recentChats, setRecentChats] = useState<any[]>([]);
+  const [isLoadingChats, setIsLoadingChats] = useState(true);
 
   console.log("setmodel:", model);
 
@@ -865,14 +876,14 @@ export default function ChatPage() {
       
       // Only save if we have valid content
       if (content.trim()) {
-        await ChatApiService.addMessage(
-          chatId,
-          message.role,
+      await ChatApiService.addMessage(
+        chatId,
+        message.role,
           content,
-          message.files,
+        message.files,
           parts,
-          message.metadata
-        );
+        message.metadata
+      );
       } else {
         
         console.warn('Skipping message save - no valid content found');
@@ -1068,6 +1079,55 @@ export default function ChatPage() {
   // Add a ref to track if we've already shown the toast
   const toastShownRef = useRef(false);
 
+  // Sidebar functions
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const createNewChat = async () => {
+    try {
+      const response = await ChatApiService.createChat(STATIC_USER_ID);
+      if (response.success && response.data.chat) {
+        // Navigate to new chat
+        window.location.href = `/chat/${response.data.chat._id}`;
+      }
+    } catch (error) {
+      console.error('Failed to create new chat:', error);
+      toast.error('Failed to create new chat');
+    }
+  };
+
+  const handleChatSelect = (chatId: string) => {
+    if (chatId !== chatId) {
+      window.location.href = `/chat/${chatId}`;
+    }
+  };
+
+  const handleModelChange = (newModel: string) => {
+    setModel(newModel);
+    toast.success(`Switched to ${getModelDisplayName(newModel)}`);
+  };
+
+  // Load recent chats
+  useEffect(() => {
+    const loadRecentChats = async () => {
+      try {
+        setIsLoadingChats(true);
+        const response = await ChatApiService.getUserChats(STATIC_USER_ID);
+        if (response.success) {
+          setRecentChats(response.data.chats || []);
+        }
+      } catch (error) {
+        console.error('Failed to load recent chats:', error);
+      } finally {
+        setIsLoadingChats(false);
+      }
+    };
+
+    if (isUserInitialized) {
+      loadRecentChats();
+    }
+  }, [isUserInitialized]);
 
 
   useEffect(() => {
@@ -1197,39 +1257,56 @@ export default function ChatPage() {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50  to-indigo-100 p-4 flex flex-col`}>
-      <div className={`max-w-5xl  mx-auto flex-1 flex flex-col w-full ${messages.length === 0 ? 'justify-center' : ''}`}>
-        {/* Header */}
-        {!messages.length && <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            AI Chat Assistant
-          </h1>
-          <p className="text-gray-600 text-lg">
-            Powered by Google&apos;s Generative AI with Memory
-          </p>
-          <p className="text-sm text-gray-500 mt-2">
-            Chat ID: {chatId} | User: {STATIC_USER_ID}
-          </p>
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onToggle={toggleSidebar}
+        recentChats={recentChats}
+        currentChatId={chatId}
+        onChatSelect={handleChatSelect}
+        onCreateNewChat={createNewChat}
+        onModelChange={handleModelChange}
+        currentModel={model}
+        userId={STATIC_USER_ID}
+      />
 
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Chat content */}
+        <div className="flex-1 overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+          <div className="flex-1 flex flex-col w-full min-h-0">
+            {/* Welcome Header */}
+            {!messages.length && (
+              <div className="text-center mb-8">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                  AI Chat Assistant
+                </h1>
+                <p className="text-gray-600 text-lg">
+                  Powered by Google&apos;s Generative AI with Memory
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Chat ID: {chatId} | User: {STATIC_USER_ID}
+                </p>
 
-
-          {/* User Profile Display */}
-          {userProfile && (
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="text-sm text-blue-800">
-                <strong>Learning Profile:</strong> {userProfile.preferences?.conversationStyle || 'casual'} style,
-                {userProfile.preferences?.topics?.length || 0} preferred topics
+                {/* User Profile Display */}
+                {userProfile && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="text-sm text-blue-800">
+                      <strong>Learning Profile:</strong> {userProfile.preferences?.conversationStyle || 'casual'} style,
+                      {userProfile.preferences?.topics?.length || 0} preferred topics
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
-        </div>}
+            )}
 
         {/* Dynamic Title Box - Sticky header that stays visible when scrolling */}
         {messages.length > 0 && status === 'ready' && (
 
-          <div className="sticky flex justify-center top-0 z-10  bg-gradient-to-b from-transparent to-white/50 pb-4 rounded-2xl ">
+          <div className="sticky flex justify-center top-0 z-10 bg-gradient-to-b from-transparent to-white/50 pb-4">
             <div
-              className="p-4 rounded-2xl shadow-sm group bg-white border border-gray-100 text-gray-100 cursor-pointer hover:shadow-md transition-shadow"
+              className="p-4 rounded-2xl shadow-sm group bg-white border border-gray-200 text-gray-800 cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => {
                 if (!isEditingTitle) {
                   setIsEditingTitle(true);
@@ -1281,11 +1358,11 @@ export default function ChatPage() {
         )}
 
         {/* Chat Container with proper scrolling context */}
-        {messages.length > 0 && <div
-          className={`bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-6 mb-6 ${messages.length === 0 && !error ? 'flex-1 flex items-center justify-center' : 'flex-1 overflow-y-auto'
-            }`}
-          ref={chatContainerRef}
-        >
+        {messages.length > 0 && (
+          <div
+            className="bg-white/80 backdrop-blur-sm flex-1 overflow-y-auto min-h-0 w-full"
+            ref={chatContainerRef}
+          >
           {error ? (
             // Enhanced Error Display - Combined comprehensive error handling
             <div className="text-center py-16">
@@ -1315,9 +1392,9 @@ export default function ChatPage() {
                     <path fillRule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z" clipRule="evenodd" />
                   </svg>
                 ) : (
-                  <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
+                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
                 )}
               </div>
               
@@ -1434,18 +1511,18 @@ export default function ChatPage() {
               )}
               
               <div className="flex flex-wrap justify-center gap-3">
-                <button
-                  onClick={() => {
-                    setError(null);
-                    setStatus('ready');
-                    if (responseTimerRef.current) {
-                      clearTimeout(responseTimerRef.current);
-                      responseTimerRef.current = null;
-                    }
-                    setIsMeasuringResponse(false);
-                    setResponseStartTime(null);
-                    setResponseTime(null);
-                  }}
+              <button
+                onClick={() => {
+                  setError(null);
+                  setStatus('ready');
+                  if (responseTimerRef.current) {
+                    clearTimeout(responseTimerRef.current);
+                    responseTimerRef.current = null;
+                  }
+                  setIsMeasuringResponse(false);
+                  setResponseStartTime(null);
+                  setResponseTime(null);
+                }}
                   className={`px-6 py-3 text-white font-medium rounded-lg transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 ${
                     (error as any).errorType === 'rate_limit_error' ? 'bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800' :
                     (error as any).errorType === 'api_key_error' ? 'bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800' :
@@ -1455,10 +1532,10 @@ export default function ChatPage() {
                     (error as any).errorType === 'server_error' ? 'bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800' :
                     'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800'
                   }`}
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Try Again
-                </button>
+              >
+                <RefreshCw className="w-4 h-4" />
+                Try Again
+              </button>
                 
                 {(error as any).errorType === 'rate_limit_error' && (
                   <button
@@ -1755,6 +1832,7 @@ export default function ChatPage() {
                 <div className="flex flex-col">
                   <span className="text-green-800 font-medium flex items-center">
                     {status === 'preparing' && <span className="typing-animation">Processing</span>}
+                    {status === 'thinking' && <span className="typing-animation">Thinking</span>}
                     {status === 'generating' && <span className="typing-animation">Generating</span>}
                     {status === 'analyzing' && <span className="typing-animation">Analyzing</span>}
                     {status === 'searching' && <span className="typing-animation">Searching</span>}
@@ -1781,10 +1859,12 @@ export default function ChatPage() {
               </div>
             </div>
           )}
-        </div>}
-
+        </div>
+        )}
+ </div> 
         {/* Input Form - Always fixed at bottom */}
-        <ChatInput
+        
+          <ChatInput
           input={input}
           setInput={setInput}
           files={files}
@@ -1794,10 +1874,12 @@ export default function ChatPage() {
           onStop={stop}
           chatId={chatId}
           messages={messages}
-          setModel={setModel}
-          model={model}
-        />
-      </div>
+                      setModel={setModel}
+            model={model}
+          />
+        </div>
+
+    </div>
 
       {/* Preview Modal */}
       {preview && (
