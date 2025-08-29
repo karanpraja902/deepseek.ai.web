@@ -38,6 +38,8 @@ export default function ChatPage() {
   const [isWebSearching, setIsWebSearching] = useState(false);
   const [isDocumentAnalyzing, setIsDocumentAnalyzing] = useState(false);
   const responseTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [userScrolledUp, setUserScrolledUp] = useState(false);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -1006,29 +1008,110 @@ export default function ChatPage() {
     return <FileText className="w-5 h-5 text-blue-600" />;
   };
 
-  // Auto-scroll effect (optimized for faster streaming)
-  useEffect(() => {
-    if (status === "streaming" || messages.length > 0) {
-      // Use requestAnimationFrame for better performance during streaming
-      const scrollToBottom = () => {
+  // Enhanced scroll utility functions
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior
+      });
+    }
+  }, []);
+
+  const isScrolledToBottom = useCallback(() => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      return scrollTop + clientHeight >= scrollHeight - 10; // 10px tolerance
+    }
+    return true;
+  }, []);
+
+  const forceScrollToBottom = useCallback(() => {
+    if (chatContainerRef.current) {
+      // Force scroll to bottom with multiple attempts for reliability
+      const attemptScroll = () => {
         if (chatContainerRef.current) {
-          chatContainerRef.current.scrollTo({
-            top: chatContainerRef.current.scrollHeight,
-            behavior: status === "streaming" ? 'auto' : 'smooth'
-          });
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
       };
+      
+      // Multiple attempts to ensure scrolling works
+      attemptScroll();
+      requestAnimationFrame(attemptScroll);
+      setTimeout(attemptScroll, 10);
+      setTimeout(attemptScroll, 50);
+    }
+  }, []);
 
+    // Enhanced auto-scroll effect for AI message generation
+  useEffect(() => {
+    if (status === "streaming" || messages.length > 0) {
       if (status === "streaming") {
         // Immediate scroll during streaming for faster response
-        requestAnimationFrame(scrollToBottom);
+        requestAnimationFrame(() => scrollToBottom('auto'));
       } else {
         // Small delay for non-streaming updates
-        const timerId = setTimeout(scrollToBottom, 50);
+        const timerId = setTimeout(() => scrollToBottom('smooth'), 50);
         return () => clearTimeout(timerId);
       }
     }
-  }, [status, messages.length]);
+  }, [status, messages.length, scrollToBottom]);
+
+  // Enhanced auto-scroll when AI messages are added or updated
+  useEffect(() => {
+    // Check if the last message is from assistant (AI)
+    const lastMessage = messages[messages.length - 1];
+    const isLastMessageFromAI = lastMessage?.role === 'assistant';
+    
+    if (isLastMessageFromAI && !userScrolledUp) {
+      // Only auto-scroll if user hasn't manually scrolled up
+      forceScrollToBottom();
+    }
+  }, [messages, forceScrollToBottom, userScrolledUp]);
+
+  // Auto-scroll when streaming status changes
+  useEffect(() => {
+    if (status === 'streaming' && !userScrolledUp) {
+      // Immediate scroll when streaming starts (only if user hasn't scrolled up)
+      requestAnimationFrame(() => forceScrollToBottom());
+      
+      // Continuous scrolling during streaming for better UX
+      const scrollInterval = setInterval(() => {
+        if (status === 'streaming' && !userScrolledUp) {
+          forceScrollToBottom();
+        }
+      }, 100); // Scroll every 100ms during streaming
+
+      return () => clearInterval(scrollInterval);
+    }
+  }, [status, forceScrollToBottom, userScrolledUp]);
+
+  // Track user scrolling behavior
+  useEffect(() => {
+    const chatContainer = chatContainerRef.current;
+    
+    if (chatContainer) {
+      const handleScroll = () => {
+        const { scrollTop, scrollHeight, clientHeight } = chatContainer;
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+        const hasScrolledUp = scrollTop < scrollHeight - clientHeight - 50;
+        
+        setShowScrollToBottom(hasScrolledUp && !isAtBottom);
+        setUserScrolledUp(hasScrolledUp);
+        
+        // Reset user scroll state when they manually scroll to bottom
+        if (isAtBottom && userScrolledUp) {
+          setUserScrolledUp(false);
+        }
+      };
+      
+      chatContainer.addEventListener('scroll', handleScroll);
+      
+      return () => {
+        chatContainer.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, [userScrolledUp]);
 
   // Handle status changes for response time measurement
   useEffect(() => {
@@ -1272,41 +1355,41 @@ export default function ChatPage() {
       />
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden bg-gray-700/80">
         {/* Chat content */}
-        <div className="flex-1 overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="flex-1 overflow-hidden flex flex-col bg-gray-700/80">
           <div className="flex-1 flex flex-col w-full min-h-0">
             {/* Welcome Header */}
             {!messages.length && (
               <div className="text-center mb-8">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                  AI Chat Assistant
-                </h1>
-                <p className="text-gray-600 text-lg">
-                  Powered by Google&apos;s Generative AI with Memory
-                </p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Chat ID: {chatId} | User: {STATIC_USER_ID}
-                </p>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-gray-600 bg-clip-text text-transparent mb-2">
+            AI Chat Assistant
+          </h1>
+          <p className="text-gray-200 text-lg">
+            Powered by Google&apos;s Generative AI with Memory
+          </p>
+          <p className="text-sm text-gray-200 mt-2">
+            Chat ID: {chatId} | User: {STATIC_USER_ID}
+          </p>
 
-                {/* User Profile Display */}
-                {userProfile && (
-                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="text-sm text-blue-800">
-                      <strong>Learning Profile:</strong> {userProfile.preferences?.conversationStyle || 'casual'} style,
-                      {userProfile.preferences?.topics?.length || 0} preferred topics
-                    </div>
-                  </div>
-                )}
+          {/* User Profile Display */}
+          {userProfile && (
+            <div className="mt-4 p-3 bg-blue-900/30 border border-blue-400/30 rounded-lg">
+              <div className="text-sm text-blue-200">
+                <strong>Learning Profile:</strong> {userProfile.preferences?.conversationStyle || 'casual'} style,
+                {userProfile.preferences?.topics?.length || 0} preferred topics
+              </div>
+            </div>
+          )}
               </div>
             )}
 
         {/* Dynamic Title Box - Sticky header that stays visible when scrolling */}
         {messages.length > 0 && status === 'ready' && (
 
-          <div className="sticky flex justify-center top-0 z-10 bg-gradient-to-b from-transparent to-white/50 pb-4">
+          <div className="sticky flex justify-center top-0 z-10 bg-gray-700/80">
             <div
-              className="p-4 rounded-2xl shadow-sm group bg-white border border-gray-200 text-gray-800 cursor-pointer hover:shadow-md transition-shadow"
+              className="p-4 rounded-2xl shadow-sm group bg-gray-600/80 text-gray-200 cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => {
                 if (!isEditingTitle) {
                   setIsEditingTitle(true);
@@ -1320,7 +1403,7 @@ export default function ChatPage() {
                     type="text"
                     value={editedTitle}
                     onChange={(e) => setEditedTitle(e.target.value)}
-                    className="text-xl font-bold text-gray-900 bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600"
+                    className="text-xl font-bold text-gray-200 bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -1348,7 +1431,7 @@ export default function ChatPage() {
                   </button>
                 </div>
               ) : (
-                <h2 className="text-xl font-bold text-gray-900">
+                <h2 className="text-xl font-bold text-gray-200 scroll-m-20">
                   {editedTitle ? editedTitle : getConversationSubtitle(messages)}
                 </h2>
               )}
@@ -1358,9 +1441,10 @@ export default function ChatPage() {
         )}
 
         {/* Chat Container with proper scrolling context */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-gray-700/80">
         {messages.length > 0 && (
           <div
-            className="bg-white/80 backdrop-blur-sm flex-1 overflow-y-auto min-h-0 w-full"
+            className="bg-gray-700/80 px-55 backdrop-blur-sm flex-1 overflow-y-auto min-h-0 overflow-x-hidden chat-scrollbar "
             ref={chatContainerRef}
           >
           {error ? (
@@ -1581,15 +1665,15 @@ export default function ChatPage() {
               {messages.map(message => (
                 <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'
                   }`}>
-                  <div className={`flex flex-row max-w p-8 rounded-2xl shadow-sm relative group ${message.role === 'user'
-                      ? 'bg-gray-50 border border-gray-100 text-gray-800'
-                      : 'bg-white border border-gray-100 text-gray-800'
+                  <div className={`flex flex-row max-w p-8 rounded-2xl  relative group ${message.role === 'user'
+                      ? 'bg-gray-700/40 text-gray-100'
+                      : 'bg-gray  text-gray'
                     }`}>
                     <div className="flex items-center gap-2 absolute -bottom-2 right-2 mb-3 group-hover:opacity-100 transition-opacity duration-200">
                       {message.role === 'assistant' && (status === "ready") && (
                         <button
                           onClick={() => regenerate()}
-                          className="p-1.5 bg-gray-50 hover:bg-blue-50 text-black-500 relative group/tooltip"
+                          className="p-1.5  hover:bg-gray-500  text-black-500 relative group/tooltip"
                           aria-label="Regenerate response"
                           title="Regenerate Response"
                         >
@@ -1602,7 +1686,7 @@ export default function ChatPage() {
                       {message.role === 'user' && (status === "ready") && editingId !== message.id && (
                         <button
                           onClick={() => handleEdit(message.id, getMessageText(message))}
-                          className="p-1.5 bg-gray-50 hover:bg-yellow-50 text-black-500 relative group/tooltip"
+                          className="p-1.5  hover:bg-gray-500 text-gray-100 relative group/tooltip"
                           aria-label="Edit message"
                           title="Edit Message"
                         >
@@ -1615,7 +1699,7 @@ export default function ChatPage() {
                       {(status === "ready") && (
                         <button
                           onClick={() => handleCopy(getMessageText(message), message.id)}
-                          className="p-1.5 bg-gray-50 hover:bg-green-50 text-black-500 relative group/tooltip"
+                          className="p-1.5  hover:bg-gray-500  text-black-500 relative group/tooltip"
                           aria-label="Copy message"
                           title="Copy Message"
                         >
@@ -1634,8 +1718,8 @@ export default function ChatPage() {
                     <div className='flex flex-row gap-2'>
                       <div className="flex items-top gap-2 mt-1">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${message.role === 'user'
-                            ? 'bg-blue-100 text-blue-600'
-                            : 'bg-blue-100 text-blue-600'
+                            ? 'bg-gray-400 text-white'
+                            : 'bg-gray-400 text-white'
                           }`}>
                           {message.role === 'user' ? 'U' : 'AI'}
                         </div>
@@ -1760,19 +1844,19 @@ export default function ChatPage() {
                             <textarea
                               value={editText}
                               onChange={(e) => setEditText(e.target.value)}
-                              className="w-full p-2 bg-white/90 text-gray-800 rounded-lg resize-none"
+                              className="w-full p-2 bg-gray-500 text-gray-100 rounded-lg resize-none"
                               rows={3}
                             />
                             <div className="flex gap-2">
                               <button
                                 onClick={() => handleSaveEdit(message.id)}
-                                className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+                                className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-200 hover:text-gray-800 transition-colors"
                               >
                                 Save
                               </button>
                               <button
                                 onClick={handleCancelEdit}
-                                className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 transition-colors"
+                                className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-200 hover:text-gray-800 transition-colors"
                               >
                                 Cancel
                               </button>
@@ -1861,10 +1945,36 @@ export default function ChatPage() {
           )}
         </div>
         )}
+
+        {/* Scroll to Bottom Button */}
+        {showScrollToBottom && (
+          <div className="flex justify-center mb-4">
+            <button
+              onClick={() => {
+                forceScrollToBottom();
+                setShowScrollToBottom(false);
+              }}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg transition-all duration-200 flex items-center gap-2 hover:scale-105"
+            >
+              <span>↓</span>
+              <span>Scroll to Bottom</span>
+            </button>
+          </div>
+        )}
+
+        {/* Auto-scroll indicator during streaming */}
+        {status === 'streaming' && !userScrolledUp && (
+          <div className="flex justify-center mb-2">
+            <div className="px-3 py-1 bg-green-500 text-white text-xs rounded-full flex items-center gap-1 animate-pulse">
+              <span className="w-2 h-2 bg-white rounded-full animate-bounce"></span>
+              <span>Auto-scrolling</span>
+            </div>
+          </div>
+        )}
  </div> 
         {/* Input Form - Always fixed at bottom */}
         
-          <ChatInput
+        <ChatInput
           input={input}
           setInput={setInput}
           files={files}
@@ -1874,12 +1984,12 @@ export default function ChatPage() {
           onStop={stop}
           chatId={chatId}
           messages={messages}
-                      setModel={setModel}
-            model={model}
-          />
+          setModel={setModel}
+          model={model}
+        />
         </div>
 
-    </div>
+      </div>
 
       {/* Preview Modal */}
       {preview && (
@@ -1939,6 +2049,7 @@ export default function ChatPage() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

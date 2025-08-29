@@ -166,7 +166,7 @@ export default function DictationButton({
       className={`${sizeClasses[size]} transition-colors relative group/tooltip ${
         isRecording 
           ? 'text-red-500 hover:text-red-600' 
-          : 'text-gray-500 hover:text-blue-600'
+          : 'text-gray-200 hover:text-red-300'
       } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
       title={isRecording ? 'Stop Dictation' : 'Start Dictation'}
     >

@@ -484,7 +484,7 @@ console.log("chatContainerMessages:",messages)
               <div className={`flex flex-row max-w p-8 rounded-2xl shadow-sm relative group ${
                 message.role === 'user' 
                   ? 'bg-gray-50 border border-gray-100 text-gray-800' 
-                  : 'bg-white border border-gray-100 text-gray-800'
+                  : 'bg-gray border border-gray-100 text-gray-800'
               }`}>
                 <div className="flex items-center gap-2 absolute -bottom-2 right-2 mb-3 group-hover:opacity-100 transition-opacity duration-200">
                   {message.role === 'assistant' && (status !== "streaming") && (

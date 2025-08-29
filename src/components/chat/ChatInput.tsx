@@ -123,8 +123,8 @@ export default function ChatInput({
   }, [isRecording, isProcessingPdf, documentMode, imageGenerationMode, weatherMode]);
 
   const containerClassName = useMemo(() => {
-    const baseClass = "flex gap-3 p-2 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border transition-all duration-300";
-    if (isRecording) return `${baseClass} border-red-300 bg-red-50/80`;
+    const baseClass = "flex gap-3 p-2  backdrop-blur-sm rounded-2xl shadow-xl border border-4  transition-all duration-300";
+    if (isRecording) return `${baseClass} border-red-300 bg-gray-500/80`;
     if (documentMode) return `${baseClass} border-blue-300 bg-blue-50/80`;
     if (imageGenerationMode) return `${baseClass} border-purple-300 bg-purple-50/80`;
     if (weatherMode) return `${baseClass} border-cyan-300 bg-cyan-50/80`;
@@ -558,7 +558,7 @@ export default function ChatInput({
   console.log("ChatInputModel:", model, "Available models:", availableModels.map(m => ({ key: m.key, available: m.isAvailable })))
 
   return (
-    <div className={`sticky bottom-0 z-10 pb-6 px-8 bg-white`}>
+    <div className={`sticky bottom-0 z-10 pb-6 px-60 bg-gray-700/80`}>
       {/* Context Warning */}
       {contextStatus.status !== 'ok' && (
         <div className={`mx-4 mb-3 p-3 rounded-lg text-sm flex items-center gap-2 border border-gray-400 shadow-md ${
@@ -680,7 +680,7 @@ export default function ChatInput({
 
         {/* Recording indicator */}
         {isRecording && (
-          <div className="mb-2 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+          <div className="mb-2 p-3 bg-gray-500 border border-red-200 rounded-lg flex items-center gap-2">
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
             <span className="text-red-700 text-sm font-medium">Recording... Speak now</span>
           </div>
@@ -695,14 +695,15 @@ export default function ChatInput({
             onKeyDown={handleKeyDown}
             disabled={status === 'streaming' || isProcessingPdf}
             placeholder={placeholderText}
-            className="flex-1 px-4 py-3 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-lg disabled:opacity-50 resize-none overflow-hidden max-h-[200px] min-h-[48px]"
+            className="flex-1 px-4 py-3 bg-transparent border-none outline-none text-white placeholder-white text-lg disabled:opacity-50 resize-none overflow-hidden max-h-[200px] min-h-[48px]"
             rows={1}
           />
-          <div className="flex relative justify-center" ref={toolsMenuRef}>
+          <div className="flex relative justify-center hover:bg-gray-600/80 rounded-lg" ref={toolsMenuRef}>
             <button
               type="button"
               onClick={handleToolsToggle}
-              className="p-2 text-gray-500 hover:text-blue-600 transition-colors relative group/tooltip"
+              className="p-2 text-white hover:text-blue-300 
+              transition-colors relative group/tooltip"
               title="Tools"
             >
               {documentMode ? (
@@ -722,17 +723,17 @@ export default function ChatInput({
             </button>
             
             {showTools && (
-              <div className="absolute bottom-full right-0 mb-2 w-64 bg-white rounded-xl border border-gray-200 shadow-lg p-2 z-20">
+              <div className="absolute bottom-full right-0 mb-2 w-64 bg-gray-600/80 rounded-xl border border-gray-200 shadow-lg p-2 z-20">
                               <div className="flex flex-col">
                 <button 
                   onClick={() => handleToolSelect('web')} 
                   disabled={documentMode || weatherMode}
-                  className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                  className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors  ${
                     documentMode || weatherMode
                       ? 'opacity-50 cursor-not-allowed text-gray-400'
                       : webSearchEnabled 
-                      ? 'bg-blue-200 text-blue-700 hover:bg-blue-200' 
-                      : 'hover:bg-blue-100'
+                      ? 'bg-cyan-200 text-cyan-700 hover:bg-cyan-200'
+                        : 'hover:bg-cyan-100 hover:text-gray-900'
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -745,10 +746,10 @@ export default function ChatInput({
                   
                   <button 
                     onClick={() => handleToolSelect('doc')} 
-                    className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
                       documentMode 
-                        ? 'bg-blue-200 text-blue-700 hover:bg-blue-200' 
-                        : 'hover:bg-blue-100'
+                        ? 'bg-gray-400/80 text-gray-100 hover:bg-gray-500/80' 
+                      : 'hover:bg-blue-100 hover:text-gray-900'
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -761,12 +762,12 @@ export default function ChatInput({
                   <button 
                     onClick={() => handleToolSelect('generate-image')} 
                     disabled={documentMode || webSearchEnabled || weatherMode}
-                    className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
                       documentMode || webSearchEnabled || weatherMode
                         ? 'opacity-50 cursor-not-allowed text-gray-400'
                         : imageGenerationMode 
                         ? 'bg-purple-200 text-purple-700 hover:bg-purple-200' 
-                        : 'hover:bg-purple-100'
+                        : 'hover:bg-purple-100 hover:text-gray-900'
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -779,12 +780,12 @@ export default function ChatInput({
                   <button 
                     onClick={() => handleToolSelect('weather')} 
                     disabled={documentMode || imageGenerationMode || webSearchEnabled}
-                    className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
                       documentMode || imageGenerationMode || webSearchEnabled
                         ? 'opacity-50 cursor-not-allowed text-gray-400' 
                         : weatherMode
                         ? 'bg-cyan-200 text-cyan-700 hover:bg-cyan-200'
-                        : 'hover:bg-cyan-100'
+                        : 'hover:bg-cyan-100 hover:text-gray-900'
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -796,10 +797,10 @@ export default function ChatInput({
                   <button 
                     onClick={() => handleToolSelect('research')} 
                     disabled={documentMode || imageGenerationMode || weatherMode}
-                    className={`flex text-gray-600 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
                       documentMode || imageGenerationMode || weatherMode
                         ? 'opacity-50 cursor-not-allowed text-gray-400' 
-                        : 'hover:bg-blue-100'
+                        : 'hover:bg-blue-100 hover:text-gray-900'
                     }`}
                   >
                     <span className="flex items-center gap-2"><FlaskConical className="w-4 h-4" />Deep Research</span>
@@ -814,7 +815,7 @@ export default function ChatInput({
             <button
               type="button"
               onClick={handleModelMenuToggle}
-              className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg hover:text-blue-600 hover:border-blue-300 transition-colors relative group/tooltip"
+              className="px-3 py-2 text-sm text-gray-700 bg-gray-600/80 border-2 border-gray-200  rounded-lg hover:text-blue-600 hover:border-blue-400 transition-colors relative group/tooltip"
               title={`Current: ${selectedModelLabel}`}
             >
               <div className="flex items-center gap-2">
@@ -825,8 +826,8 @@ export default function ChatInput({
               </div>
             </button>
             {showModelMenu && (
-              <div className="absolute bottom-full right-0 mb-2 w-80 bg-white rounded-xl border border-gray-200 shadow-lg p-2 z-20">
-                <div className="p-2 text-xs text-gray-700">Current: {selectedModelLabel}</div>
+              <div className="absolute bottom-full right-0 mb-2 w-80 bg-gray-600/80 rounded-xl border border-gray-200 shadow-lg p-2 z-20">
+                <div className="p-2 text-xs text-gray-100">Current: {selectedModelLabel}</div>
                 {isLoadingModels ? (
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -841,17 +842,17 @@ export default function ChatInput({
                         disabled={!opt.isAvailable}
                         className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
                           !opt.isAvailable 
-                            ? 'opacity-50 cursor-not-allowed text-gray-400' 
+                            ? 'opacity-50 cursor-not-allowed text-gray-900' 
                             : model === opt.value 
-                            ? 'bg-blue-100 text-blue-700' 
-                            : 'hover:bg-gray-100 text-gray-700'
+                            ? 'bg-gray-500 text-white' 
+                            : 'hover:bg-gray-500 text-gray-100'
                         }`}
                       >
                         <div className="flex items-center gap-2">
                           <LuCpu className="w-4 h-4" />
                           <div className="text-left">
                             <div className="text-sm font-medium">{opt.label}</div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-gray-100">
                               {opt.provider === 'google' ? 'Google AI' : 'OpenRouter'}
                               {opt.isDefault && ' (Default)'}
                               {!opt.isAvailable && ' (Unavailable)'}
@@ -859,7 +860,7 @@ export default function ChatInput({
                           </div>
                         </div>
                         {model === opt.value && opt.isAvailable && (
-                          <span className="text-xs bg-blue-200 px-2 py-1 rounded">Selected</span>
+                          <span className="text-gray-800 text-xs bg-blue-200 px-2 py-1 rounded">Selected</span>
                         )}
                       </button>
                     ))}
@@ -877,7 +878,7 @@ export default function ChatInput({
             className={`p-2 transition-colors relative group/tooltip ${
               isFileUploadDisabled
                 ? 'text-gray-300 cursor-not-allowed' 
-                : 'text-gray-500 hover:text-blue-600'
+                : 'text-gray-100 hover:text-blue-300 hover:bg-gray-600/80 rounded-lg'
             }`}
             title={
               documentMode 
