@@ -1666,7 +1666,7 @@ export default function ChatPage() {
                 <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'
                   }`}>
                   <div className={`flex flex-row max-w p-8 rounded-2xl  relative group ${message.role === 'user'
-                      ? 'bg-gray-700/40 text-gray-100'
+                      ? 'bg-gray-600/80 text-gray-100'
                       : 'bg-gray  text-gray'
                     }`}>
                     <div className="flex items-center gap-2 absolute -bottom-2 right-2 mb-3 group-hover:opacity-100 transition-opacity duration-200">
@@ -1905,16 +1905,16 @@ export default function ChatPage() {
               ))}
             </div>
           )}
-
-          {status !== 'idle' && status !== 'ready' && (
-            <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200 shadow-lg backdrop-blur-sm bg-opacity-80 animate-fadeIn">
+<div className="ml-2 px-4">
+          {status !== 'idle'  && status !== 'ready' && (
+            <div className="mt-2 p-2  bg-gradient-to-r from-gray-600 to-gray-700/80  rounded-xl border-2 border-gray-400 shadow-lg backdrop-blur-sm bg-opacity-80 animate-fadeIn">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <Loader2 className="w-5 h-5 animate-spin text-green-600" />
-                  <div className="absolute inset-0 bg-green-200 rounded-full opacity-0 animate-ping"></div>
+                  <Loader2 className="ml-2 w-5 h-5 animate-spin text-white" />
+                  <div className="absolute inset-0 bg-gray-200 rounded-full opacity-0 animate-ping"></div>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-green-800 font-medium flex items-center">
+                  <span className="text-gray-200 font-medium flex items-center">
                     {status === 'preparing' && <span className="typing-animation">Processing</span>}
                     {status === 'thinking' && <span className="typing-animation">Thinking</span>}
                     {status === 'generating' && <span className="typing-animation">Generating</span>}
@@ -1930,13 +1930,13 @@ export default function ChatPage() {
                     </span>
                   </span>
                   {statusSub && (
-                    <span className="text-green-600 text-sm mt-1 animate-fadeIn">
+                    <span className="text-gray-200 text-sm mt-1 animate-fadeIn">
                       {statusSub}
                     </span>
                   )}
                 </div>
                 {responseTime && (
-                  <span className="text-green-800 text-sm ml-auto bg-green-200 px-3 py-1 rounded-full shadow-sm animate-slideIn">
+                  <span className="text-gray-200 border-2 border-gray-200 text-sm ml-auto  px-3 py-1 rounded-full shadow-sm animate-slideIn">
                     Time: {(responseTime / 1000).toFixed(2)}s
                   </span>
                 )}
@@ -1944,6 +1944,8 @@ export default function ChatPage() {
             </div>
           )}
         </div>
+        </div>
+
         )}
 
         {/* Scroll to Bottom Button */}
@@ -1965,8 +1967,8 @@ export default function ChatPage() {
         {/* Auto-scroll indicator during streaming */}
         {status === 'streaming' && !userScrolledUp && (
           <div className="flex justify-center mb-2">
-            <div className="px-3 py-1 bg-green-500 text-white text-xs rounded-full flex items-center gap-1 animate-pulse">
-              <span className="w-2 h-2 bg-white rounded-full animate-bounce"></span>
+            <div className="px-3 py-1 bg-gray-500 text-white text-xs rounded-full flex items-center gap-1 animate-pulse">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></span>
               <span>Auto-scrolling</span>
             </div>
           </div>

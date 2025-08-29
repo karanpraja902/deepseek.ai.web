@@ -82,29 +82,27 @@ export default function Sidebar({
   };
 
   return (
-    <div className={`bg-white border-r border-gray-200 transition-all duration-300 ease-in-out ${isOpen ? 'w-64' : 'w-20'} flex flex-col h-full`}>
+    <div className={`bg-gray-900/80  transition-all duration-300 ease-in-out ${isOpen ? 'w-64' : 'w-20'} flex flex-col h-full`}>
       {/* Sidebar header */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-        {isOpen ? (
-          <h1 className="text-xl font-bold text-blue-600">AI Chat</h1>
-        ) : (
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <MessageSquare className="w-5 h-5 text-white" />
-          </div>
+      <div className="p-4 flex flex-rowx items-center justify-center  ">
+      {isOpen && (
+          <h1 className="text-xl font-bold text-gray-500 text-4xl font-bold bg-gradient-to-r from-white to-gray-600 bg-clip-text text-transparent mb-2">AI Chat</h1>
         )}
-        <button 
+      <button 
           onClick={onToggle}
-          className="p-1 rounded-md hover:bg-gray-100"
+          className={`p-1 justify-center rounded-md hover:bg-gray-600 ${isOpen&&'ml-auto mb-2 '}`}
         >
-          {isOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+          {isOpen ? <ChevronLeft className={`w-8 h-8`} /> : <ChevronRight className="w-8 h-8" />}
         </button>
+      
+       
       </div>
 
       {/* New Chat Button */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4  border-gray-200">
         <button
           onClick={onCreateNewChat}
-          className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+          className="w-full flex items-center justify-center gap-2 bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-300 hover:text-gray-900  transition-colors"
         >
           {isOpen ? (
             <>
@@ -119,39 +117,39 @@ export default function Sidebar({
 
       {/* Search box (only when sidebar is open) */}
       {isOpen && (
-        <div className="p-4 border-b border-gray-200">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <div className="p-4 ">
+          <div className="relative text-gray-100">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-100 w-4 h-4" />
             <input
               type="text"
               placeholder="Search chats..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full text-gray-100  pl-10 pr-4 py-2 border-4 border-white/20 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>
       )}
-
+{/* focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent */}
       {/* Recent Chats */}
       <div className="flex-1 overflow-y-auto h-full ">
         <div className="p-4">
           {isOpen && <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Recent Chats</h2>}
           
-          {recentChats.length === 0 ? (
+          {recentChats.length === 0 && isOpen ? (
             isOpen && <p className="text-gray-500 text-sm py-2">No recent chats</p>
           ) : (
             <div className="space-y-1">
-              {filteredChats.map((chat: any) => (
+              {isOpen && filteredChats.map((chat: any) => (
                 <button
                   key={chat._id}
                   onClick={() => onChatSelect(chat._id)}
-                  className={`w-full text-left p-2 rounded-md flex ${currentChatId === chat._id ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'} ${isOpen ? 'flex-col' : 'justify-center'}`}
+                  className={`w-full text-left p-2 rounded-md flex ${currentChatId === chat._id ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-500 hover:text-white'} ${isOpen ? 'flex-col' : 'justify-center'}`}
                 >
                   {isOpen ? (
                     <>
                       <span className="truncate text-sm font-medium">{chat.title || 'New Chat'}</span>
-                      <span className="text-xs text-gray-500">{formatChatDate(chat.updatedAt || chat.createdAt)}</span>
+                      <span className="text-xs ">{formatChatDate(chat.updatedAt || chat.createdAt)}</span>
                     </>
                   ) : (
                     <MessageSquare className="w-5 h-5" />
@@ -164,10 +162,10 @@ export default function Sidebar({
       </div>
 
       {/* Settings section */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4  border-gray-200">
         {isOpen && (
           <div className="mb-4">
-            <div className="relative">
+            <div className="relative border-gray-500">
               <button
                 onClick={() => setSettingsOpen(!settingsOpen)}
                 className="w-full flex items-center justify-between p-2 rounded-md hover:bg-gray-100 text-left"

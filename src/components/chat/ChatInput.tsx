@@ -4,7 +4,7 @@ import { PdfApiService, ChatApiService, AiApiService } from '../../services/api'
 import type { ModelInfo } from '../../services/api/ai';
 import { getContextStatus } from '../../services/api/context-manager';
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
-import { Paperclip, X, StopCircle, Loader2, Globe, Image as ImageIcon, Code2, FileText, Table, CloudSun, FlaskConical, Wrench, SlidersHorizontal, Settings, Search, Palette } from 'lucide-react';
+import { Paperclip, X, StopCircle, Loader2, Globe, Image as ImageIcon, Code2, FileText, Table, CloudSun, FlaskConical, Wrench, SlidersHorizontal, Settings, Search, Palette, Square } from 'lucide-react';
 import DictationButton from '../ui/DictationButton';
 import { LuCpu } from "react-icons/lu"
 
@@ -123,14 +123,13 @@ export default function ChatInput({
   }, [isRecording, isProcessingPdf, documentMode, imageGenerationMode, weatherMode]);
 
   const containerClassName = useMemo(() => {
-    const baseClass = "flex gap-3 p-2  backdrop-blur-sm rounded-2xl shadow-xl border border-4  transition-all duration-300";
+    const baseClass = "flex gap-3 p-2  backdrop-blur-sm rounded-2xl shadow-xl border border-4  transition-all duration-300 ";
     if (isRecording) return `${baseClass} border-red-300 bg-gray-500/80`;
     if (documentMode) return `${baseClass} border-blue-300 bg-blue-50/80`;
     if (imageGenerationMode) return `${baseClass} border-purple-300 bg-purple-50/80`;
     if (weatherMode) return `${baseClass} border-cyan-300 bg-cyan-50/80`;
     return `${baseClass} border-white/20`;
   }, [isRecording, documentMode, imageGenerationMode, weatherMode]);
-
   // Load available models on component mount
   useEffect(() => {
     const loadModels = async () => {
@@ -695,7 +694,8 @@ export default function ChatInput({
             onKeyDown={handleKeyDown}
             disabled={status === 'streaming' || isProcessingPdf}
             placeholder={placeholderText}
-            className="flex-1 px-4 py-3 bg-transparent border-none outline-none text-white placeholder-white text-lg disabled:opacity-50 resize-none overflow-hidden max-h-[200px] min-h-[48px]"
+  
+            className="flex-1 px-4 py-3 bg-transparent border-none outline-none text-white placeholder-white text-lg disabled:opacity-50 resize-none overflow-hidden max-h-[200px] min-h-[48px]  "
             rows={1}
           />
           <div className="flex relative justify-center hover:bg-gray-600/80 rounded-lg" ref={toolsMenuRef}>
@@ -931,15 +931,21 @@ export default function ChatInput({
 
           {/* Submit or stop button */}
           {status === 'streaming' ? (
+            
             <button
               type="button"
               onClick={onStop}
-              className="px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-colors flex items-center justify-center relative group/tooltip"
+              className="px-4 py-3 bg-gradient-to-r from-gray-500 to-gray-500 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-colors flex items-center justify-center relative group/tooltip"
               title="Stop Generation"
             >
-              <StopCircle className="w-5 h-5" />
+              <div>
+         
+              <Square className="w-5 h-5 text-red-400 bg-red-400 rounded-sm " >
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
                 Stop Generation
+              </div>
+              </Square>
+              
               </div>
             </button>
           ) : (!isRecording && (
