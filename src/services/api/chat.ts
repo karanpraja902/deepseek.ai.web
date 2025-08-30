@@ -3,6 +3,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/a
 
 export class ChatApiService {
   static async createChat(userId: string) {
+    console.log("CreateChat:",userId)
     try {
       const response = await fetch(`${API_BASE_URL}/chat`, {
         method: 'POST',
@@ -11,6 +12,7 @@ export class ChatApiService {
         },
         body: JSON.stringify({ userId }),
       });
+      console.log("CreateResponseId:",response)
 
       if (!response.ok) {
         throw new Error('Failed to create chat');
@@ -70,6 +72,8 @@ export class ChatApiService {
         throw new Error('Invalid message data: missing required fields');
       }
 
+
+     
       const messageData = { 
         role, 
         content: content.trim(), 

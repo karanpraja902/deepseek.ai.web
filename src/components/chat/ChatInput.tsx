@@ -557,7 +557,7 @@ export default function ChatInput({
   console.log("ChatInputModel:", model, "Available models:", availableModels.map(m => ({ key: m.key, available: m.isAvailable })))
 
   return (
-    <div className={`sticky bottom-0 z-10 pb-1 sm:pb-2 md:pb-4 lg:pb-6 px-1 sm:px-2 md:px-4 lg:px-6 xl:px-8 2xl:px-12 bg-gray-700/80`}>
+    <div className={`sticky bottom-0 z-10 pb-1 sm:pb-2 md:pb-4 lg:pb-6 px-4 sm:px-6 md:px-12 lg:px-20 xl:px-30 2xl:px-40 ${messages.length > 0 ? 'bg-gray-700/80' : 'bg-transparent'}`}>
       {/* Context Warning */}
       {contextStatus.status !== 'ok' && (
         <div className={`mx-1 sm:mx-2 md:mx-4 mb-1.5 sm:mb-2 md:mb-3 p-1.5 sm:p-2 md:p-3 rounded-lg text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 border border-gray-400 shadow-md ${

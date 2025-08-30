@@ -5,7 +5,7 @@ import { ChatApiService } from '../../services/api/chat';
 
 
 export default async function Page() {
-const STATIC_USER_ID = 'static_user_karana';
+const STATIC_USER_ID = 'static_user_karan';
 // Use LangChain to load and split the PDF document.et 
 const response = await ChatApiService.createChat(STATIC_USER_ID); 
 // create a new chat with user context

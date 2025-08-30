@@ -31,6 +31,7 @@ interface SidebarProps {
   onModelChange: (model: string) => void;
   currentModel: string;
   userId: string;
+  isLoadingChats?: boolean;
 }
 
 export default function Sidebar({
@@ -39,10 +40,11 @@ export default function Sidebar({
   recentChats,
   currentChatId,
   onChatSelect,
-  onCreateNewChat,
+onCreateNewChat,
   onModelChange,
   currentModel,
-  userId
+  userId,
+  isLoadingChats = false
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -103,7 +105,7 @@ export default function Sidebar({
       <>
         {/* Backdrop */}
         <div 
-          className="fixed inset-0  bg-opacity-100 z-40 lg:hidden"
+          className="fixed inset-0  bg-gray-900 bg-opacity-50 z-40 sm:hidden md:hidden lg:hidden 2xl:hidden xl:hidden"
           onClick={onToggle}
         />
         
@@ -148,20 +150,27 @@ export default function Sidebar({
           </div>
 
           {/* Recent Chats */}
-          <div className="flex-1 overflow-y-auto max-h-[40vh]">
+          <div className="flex-1 overflow-y-auto max-h-[60vh]">
             <div className="p-4 overflow-y-auto">
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Recent Chats</h2>
               
-              {recentChats.length === 0 ? (
+              {isLoadingChats ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400"></div>
+                  <span className="ml-2 text-gray-400 text-sm">Loading chats...</span>
+                </div>
+              ) : recentChats.length === 0 ? (
                 <p className="text-gray-500 text-sm py-2">No recent chats</p>
+              ) : filteredChats.length === 0 ? (
+                <p className="text-gray-500 text-sm py-2">No chats match your search</p>
               ) : (
                 <div className="space-y-1">
                   {filteredChats.map((chat: any) => (
                     <button
-                      key={chat._id}
-                      onClick={() => handleChatSelect(chat._id)}
+                      key={chat.id}
+                      onClick={() => handleChatSelect(chat.id)}
                       className={`w-full text-left p-3 rounded-md flex flex-col ${
-                        currentChatId === chat._id 
+                        currentChatId === chat.id 
                           ? 'bg-blue-600 text-white' 
                           : 'hover:bg-gray-700 text-gray-300'
                       }`}
@@ -180,42 +189,8 @@ export default function Sidebar({
           </div>
 
           {/* Settings section */}
-          <div className="p-4 border-t border-gray-700">
-            <div className="mb-4">
-              <div className="relative">
-                <button
-                  onClick={() => setSettingsOpen(!settingsOpen)}
-                  className="w-full flex items-center justify-between p-3 rounded-md hover:bg-gray-700 text-left text-gray-300"
-                >
-                  <div className="flex items-center gap-2">
-                    <Settings className="w-4 h-4" />
-                    <span className="font-medium text-sm">AI Settings</span>
-                  </div>
-                  <ChevronRight className={`w-4 h-4 transition-transform ${settingsOpen ? 'rotate-90' : ''}`} />
-                </button>
+          <div className="sticky z-10 bottom-0 p-4 border-t border-gray-700">
 
-                {settingsOpen && (
-                  <div className="mt-2 ml-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400 text-sm">AI Model</span>
-                      <select
-                        value={currentModel}
-                        onChange={(e) => onModelChange(e.target.value)}
-                        className="border border-gray-600 bg-gray-800 text-gray-300 rounded px-2 py-1 text-sm"
-                      >
-                        <option value="google">Google Gen AI</option>
-                        <option value="openrouter:deepseek/deepseek-r1-0528:free">DeepSeek R1</option>
-                        <option value="openrouter:nvidia/llama-3.1-nemotron-ultra-253b-v1:free">Llama 3.1</option>
-                        <option value="openrouter:openai/gpt-oss-20b:free">GPT-Oss-20b</option>
-                      </select>
-                    </div>
-                    <div className="text-gray-500 text-sm">
-                      Current: <span className="font-medium">{getModelDisplayName(currentModel)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* User section */}
             <div className="relative">
@@ -272,7 +247,7 @@ export default function Sidebar({
 
   // Desktop sidebar - only shown on laptop+ screens (unchanged)
   return (
-    <div className={`hidden lg:block bg-gray-900/80 transition-all duration-300 ease-in-out ${
+    <div className={`hidden lg:block lg:bg-gray-800 transition-all duration-300 ease-in-out ${
       isOpen ? 'w-64' : 'w-20'
     } flex flex-col h-full`}>
       {/* Sidebar header */}
@@ -286,9 +261,9 @@ export default function Sidebar({
         )}
         <button 
           onClick={onToggle}
-          className={`p-1 justify-center rounded-md hover:bg-gray-600 ${isOpen && 'ml-auto mb-2'}`}
+          className={`p-1 justify-center rounded-md bg-gray-700 px-2 hover:bg-gray-600 ${isOpen && 'ml-auto mb-2'}`}
         >
-          {isOpen ? <ChevronLeft className="w-8 h-8" /> : <ChevronRight className="w-8 h-8" />}
+          {isOpen ? <ChevronLeft className="w-6 h-6" /> : <ChevronRight className="w-8 h-6" />}
         </button>
       </div>
 
@@ -296,7 +271,7 @@ export default function Sidebar({
       <div className="p-4 border-gray-200">
         <button
           onClick={onCreateNewChat}
-          className="w-full flex items-center justify-center gap-2 bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-300 hover:text-gray-900 transition-colors"
+          className="w-full flex items-center justify-center gap-2 bg-gray-700 text-white py-2 px-4 rounded-md hover:bg-gray-300 hover:text-gray-900 transition-colors"
         >
           {isOpen ? (
             <>
@@ -326,20 +301,27 @@ export default function Sidebar({
       )}
 
       {/* Recent Chats */}
-      <div className="flex-1 overflow-y-auto h-full max-h-[40vh]">
+      <div className="flex-1 overflow-y-auto h-full max-h-[60vh]">
         <div className="p-4">
           {isOpen && <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Recent Chats</h2>}
           
-          {recentChats.length === 0 && isOpen ? (
+          {isLoadingChats && isOpen ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400"></div>
+              <span className="ml-2 text-gray-400 text-sm">Loading chats...</span>
+            </div>
+          ) : recentChats.length === 0 && isOpen ? (
             <p className="text-gray-500 text-sm py-2">No recent chats</p>
+          ) : filteredChats.length === 0 && isOpen && searchQuery.trim() ? (
+            <p className="text-gray-500 text-sm py-2">No chats match your search</p>
           ) : (
             <div className="space-y-1">
               {isOpen && filteredChats.map((chat: any) => (
                 <button
-                  key={chat._id}
-                  onClick={() => onChatSelect(chat._id)}
+                  key={chat.id}
+                  onClick={() => onChatSelect(chat.id)}
                   className={`w-full text-left p-2 rounded-md flex ${
-                    currentChatId === chat._id 
+                    currentChatId === chat.id 
                       ? 'bg-blue-50 text-blue-600' 
                       : 'hover:bg-gray-500 hover:text-white'
                   } ${isOpen ? 'flex-col' : 'justify-center'}`}
@@ -363,87 +345,49 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Settings section */}
-      <div className="p-4 border-gray-200">
-        {isOpen && (
-          <div className="mb-4">
-            <div className="relative border-gray-500">
-              <button
-                onClick={() => setSettingsOpen(!settingsOpen)}
-                className="w-full flex items-center justify-between p-2 rounded-md hover:bg-gray-100 text-left"
-              >
-                <div className="flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  <span className={`font-medium ${isTablet ? 'text-xs' : 'text-sm'}`}>AI Settings</span>
-                </div>
-                <ChevronRight className={`w-4 h-4 transition-transform ${settingsOpen ? 'rotate-90' : ''}`} />
-              </button>
 
-              {settingsOpen && (
-                <div className="mt-2 ml-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className={`text-gray-600 ${isTablet ? 'text-xs' : 'text-xs'}`}>AI Model</span>
-                    <select
-                      value={currentModel}
-                      onChange={(e) => onModelChange(e.target.value)}
-                      className={`border border-gray-300 rounded px-2 py-1 ${isTablet ? 'text-xs' : 'text-xs'}`}
-                    >
-                      <option value="google">Google Gen AI</option>
-                      <option value="openrouter:deepseek/deepseek-r1-0528:free">DeepSeek R1</option>
-                      <option value="openrouter:nvidia/llama-3.1-nemotron-ultra-253b-v1:free">Llama 3.1</option>
-                      <option value="openrouter:openai/gpt-oss-20b:free">GPT-Oss-20b</option>
-                    </select>
-                  </div>
-                  <div className={`text-gray-500 ${isTablet ? 'text-xs' : 'text-xs'}`}>
-                    Current: <span className="font-medium">{getModelDisplayName(currentModel)}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* User section */}
         <div className="relative">
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-gray-100"
+            className="w-full flex items-center gap-3 p-2 rounded-md  hover:bg-gray-500 hover:text-gray-100"
           >
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+           {isOpen&& <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
               <User className="w-5 h-5 text-blue-600" />
-            </div>
+            </div>}
             {isOpen && (
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 hover:text-gray-100">
                 <p className={`font-medium truncate ${isTablet ? 'text-xs' : 'text-sm'}`}>{userId}</p>
-                <p className={`text-gray-500 truncate ${isTablet ? 'text-xs' : 'text-xs'}`}>Free Plan</p>
+                <p className={`text-gray-100 truncate  ${isTablet ? 'text-xs' : 'text-xs'}`}>Free Plan</p>
               </div>
             )}
           </button>
 
           {userMenuOpen && isOpen && (
-            <div className="absolute bottom-full left-0 mb-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-10">
-              <div className="px-4 py-2 border-b border-gray-100">
+            <div className="absolute bottom-full left-0 mb-1 w-48 bg-gray-800 rounded-md shadow-lg border border-gray-500 py-1 z-10">
+              <div className="px-4 py-2 border-b border-gray-500">
                 <p className="text-sm font-medium">{userId}</p>
                 <p className="text-xs text-gray-500">Free Plan</p>
               </div>
               <div className="py-1">
-                <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2">
+                <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-500 flex items-center gap-2">
                   <User className="w-4 h-4" />
                   Profile
                 </button>
-                <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2">
+                <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-500 flex items-center gap-2">
                   <Settings className="w-4 h-4" />
                   Settings
                 </button>
-                <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2">
+                <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-500 flex items-center gap-2">
                   <HelpCircle className="w-4 h-4" />
                   Help & Support
                 </button>
               </div>
-              <div className="py-1 border-t border-gray-100">
+              <div className="py-1 border-t border-gray-500">
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-500 flex items-center gap-2"
                 >
                   <LogOut className="w-4 h-4" />
                   Sign out
@@ -453,6 +397,5 @@ export default function Sidebar({
           )}
         </div>
       </div>
-    </div>
   );
 }

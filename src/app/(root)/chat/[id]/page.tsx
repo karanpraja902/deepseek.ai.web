@@ -15,7 +15,7 @@ import Sidebar from '../../../../components/ui/sidebar';
 import Header from '../../../../components/ui/header';
 
 // Static user ID for the demo
-const STATIC_USER_ID = 'static_user_karan';
+const STATIC_USER_ID = 'static_user_karanao';
 // 
 // Helper function to format base64 image data
 
@@ -122,7 +122,6 @@ export default function ChatPage() {
           clearInterval(interval);
         }
       }, 4000); // Optimized timing for better UX
-
       return () => clearInterval(interval);
     }
   }, [isImageGenerating, isWebSearching, isDocumentAnalyzing, status]);
@@ -136,11 +135,16 @@ export default function ChatPage() {
   useEffect(() => {
     const loadMessages = async () => {
       try {
+        if (!chatId || chatId === 'undefined') {
+          console.error('Invalid chatId:', chatId);
+          return;
+        }
+        
         const response = await ChatApiService.getChatMessages(chatId);
         if (response.success && response.data.messages) {
           // Transform database messages to frontend format
           const transformedMessages = response.data.messages.map((msg: any, index: number) => ({
-            id: msg._id || `msg-${index}`,
+            id: msg.parts[0]._id || `msg-${index}`,
             role: msg.role,
             content: msg.content,
             parts: msg.parts || [{ type: 'text', text: msg.content }],
@@ -156,7 +160,7 @@ export default function ChatPage() {
       }
     };
 
-    if (chatId) {
+    if (chatId && chatId !== 'undefined') {
       loadMessages();
     }
   }, [chatId]);
@@ -867,6 +871,7 @@ export default function ChatPage() {
   // Save message function for persistence
   const saveMessage = async (chatId: string, message: any) => {
     try {
+      console.log("saveMessage:", chatId, message);
       // Ensure we have valid content before saving
       let content = message.content || '';
       let parts = message.parts || [];
@@ -1171,9 +1176,12 @@ export default function ChatPage() {
 
   const createNewChat = async () => {
     try {
-      const response = await ChatApiService.createChat(STATIC_USER_ID);
+      console.log("create new chat api", STATIC_USER_ID)
+      const response = await ChatApiService.createChat(STATIC_USER_ID); 
+      console.log("response.data.chat:", response.data.chat)
       if (response.success && response.data.chat) {
         // Navigate to new chat
+        console.log("response.data.chat._id:", response.data.chat._id)
         window.location.href = `/chat/${response.data.chat._id}`;
       }
     } catch (error) {
@@ -1182,9 +1190,9 @@ export default function ChatPage() {
     }
   };
 
-  const handleChatSelect = (chatId: string) => {
-    if (chatId !== chatId) {
-      window.location.href = `/chat/${chatId}`;
+  const handleChatSelect = (selectedChatId: string) => {
+    if (selectedChatId !== chatId) {
+      window.location.href = `/chat/${selectedChatId}`;
     }
   };
 
@@ -1237,17 +1245,21 @@ export default function ChatPage() {
     const loadExistingMessages = async () => {
       try {
         console.log('chatId:', chatId);
-        if (!chatId) return;
+        if (!chatId || chatId === 'undefined') {
+          console.error('Invalid chatId for loadExistingMessages:', chatId);
+          return;
+        }
 
         // Use the API service instead of direct fetch
-        const { chat: existingChat } = await ChatApiService.getChat(chatId);
+        const response = await ChatApiService.getChat(chatId);
+        const existingChat = response?.data?.chat;
 
         console.log('existingChat:', existingChat);
 
         if (existingChat && existingChat.messages.length > 0) {
           const uiMessages = existingChat.messages.map((msg: any) => {
             return {
-              id: msg._id,
+              id: msg.parts[0]._id,
               role: msg.role,
               content: msg.content,
               createdAt: msg.timestamp,
@@ -1313,6 +1325,7 @@ export default function ChatPage() {
 
     const firstUserMessage = messages.find(msg => msg.role === 'user');
     if (!firstUserMessage) return 'AI-powered conversation';
+    console.log("firstUserMessage:", firstUserMessage);
 
     const content = firstUserMessage.content || '';
 
@@ -1324,7 +1337,7 @@ export default function ChatPage() {
     } else if (content.includes('create') || content.includes('build')) {
       return 'Development and creation assistance';
     } else {
-      return 'AI-powered conversation with memory';
+      return content;
     }
   };
 
@@ -1344,7 +1357,7 @@ export default function ChatPage() {
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar - Always rendered, but shown differently based on screen size */}
-      <Sidebar
+       <Sidebar
         isOpen={sidebarOpen}
         onToggle={toggleSidebar}
         recentChats={recentChats}
@@ -1354,6 +1367,7 @@ export default function ChatPage() {
         onModelChange={handleModelChange}
         currentModel={model}
         userId={STATIC_USER_ID}
+        isLoadingChats={isLoadingChats}
       />
 
       {/* Main content */}
@@ -1387,7 +1401,7 @@ export default function ChatPage() {
           <div className="flex-1 flex flex-col w-full min-h-0">
             {/* Welcome Header */}
             {!messages.length && (
-              <div className="text-center mb-8 px-4">
+              <div className={`text-center mb-8 px-4 ${!messages.length && 'mt-45'}`}>
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-gray-600 bg-clip-text text-transparent mb-2">
                   AI Chat Assistant
                 </h1>
@@ -1478,10 +1492,10 @@ export default function ChatPage() {
         )}
 
         {/* Chat Container with proper scrolling context */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-gray-700/80">
+        {messages.length > 0 && <div className="flex-1 flex flex-col overflow-hidden bg-gray-700/80">
         {messages.length > 0 && (
           <div
-            className="bg-gray-700/80 px-4 sm:px-8 md:px-12 lg:px-16 backdrop-blur-sm flex-1 overflow-y-auto min-h-0 overflow-x-hidden chat-scrollbar"
+            className="bg-gray-700/80 px-6 px-4 sm:px-6 md:px-12 lg:px-20 xl:px-30 2xl:px-40  backdrop-blur-sm flex-1 overflow-y-auto min-h-0 overflow-x-hidden chat-scrollbar"
             ref={chatContainerRef}
           >
           {error ? (
@@ -1702,7 +1716,7 @@ export default function ChatPage() {
               {messages.map(message => (
                 <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'
                   }`}>
-                  <div className={`flex flex-row max-w p-8 rounded-2xl  relative group ${message.role === 'user'
+                  <div className={`flex flex-row max-w p-8 rounded-2xl  relative group  ${message.role === 'user'
                       ? 'bg-gray-600/80 text-gray-100'
                       : 'bg-gray  text-gray'
                     }`}>
@@ -2010,7 +2024,7 @@ export default function ChatPage() {
             </div>
           </div>
         )}
- </div> 
+ </div>} 
         {/* Input Form - Always fixed at bottom */}
         
         <ChatInput
