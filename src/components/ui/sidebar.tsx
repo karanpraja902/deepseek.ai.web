@@ -148,8 +148,8 @@ export default function Sidebar({
           </div>
 
           {/* Recent Chats */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-4">
+          <div className="flex-1 overflow-y-auto max-h-[40vh]">
+            <div className="p-4 overflow-y-auto">
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Recent Chats</h2>
               
               {recentChats.length === 0 ? (
@@ -326,7 +326,7 @@ export default function Sidebar({
       )}
 
       {/* Recent Chats */}
-      <div className="flex-1 overflow-y-auto h-full">
+      <div className="flex-1 overflow-y-auto h-full max-h-[40vh]">
         <div className="p-4">
           {isOpen && <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Recent Chats</h2>}
           

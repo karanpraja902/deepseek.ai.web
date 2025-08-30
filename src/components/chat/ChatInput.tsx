@@ -123,7 +123,7 @@ export default function ChatInput({
   }, [isRecording, isProcessingPdf, documentMode, imageGenerationMode, weatherMode]);
 
   const containerClassName = useMemo(() => {
-    const baseClass = "flex gap-3 p-2  backdrop-blur-sm rounded-2xl shadow-xl border border-4  transition-all duration-300 ";
+    const baseClass = "flex flex-col sm:flex-row gap-1 sm:gap-2 md:gap-3 p-1.5 sm:p-2 md:p-3 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl shadow-xl border border-4 transition-all duration-300 ";
     if (isRecording) return `${baseClass} border-red-300 bg-gray-500/80`;
     if (documentMode) return `${baseClass} border-blue-300 bg-blue-50/80`;
     if (imageGenerationMode) return `${baseClass} border-purple-300 bg-purple-50/80`;
@@ -557,10 +557,10 @@ export default function ChatInput({
   console.log("ChatInputModel:", model, "Available models:", availableModels.map(m => ({ key: m.key, available: m.isAvailable })))
 
   return (
-    <div className={`sticky bottom-0 z-10 pb-4 sm:pb-6 px-4 sm:px-8 md:px-16 lg:px-32 xl:px-60 bg-gray-700/80`}>
+    <div className={`sticky bottom-0 z-10 pb-1 sm:pb-2 md:pb-4 lg:pb-6 px-1 sm:px-2 md:px-4 lg:px-6 xl:px-8 2xl:px-12 bg-gray-700/80`}>
       {/* Context Warning */}
       {contextStatus.status !== 'ok' && (
-        <div className={`mx-4 mb-3 p-3 rounded-lg text-sm flex items-center gap-2 border border-gray-400 shadow-md ${
+        <div className={`mx-1 sm:mx-2 md:mx-4 mb-1.5 sm:mb-2 md:mb-3 p-1.5 sm:p-2 md:p-3 rounded-lg text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 border border-gray-400 shadow-md ${
           contextStatus.status === 'danger' 
             ? 'bg-red-100 border border-red-200 text-red-700' 
             : 'bg-yellow-100 border border-yellow-200 text-yellow-700'
@@ -569,7 +569,7 @@ export default function ChatInput({
             <span className="font-medium">
               {contextStatus.percentage}% of context used
             </span>
-            <span className="ml-2">{contextStatus.message}</span>
+            <span className="ml-1 sm:ml-2">{contextStatus.message}</span>
           </div>
           <span className="text-xs opacity-75">
             {contextStatus.currentTokens.toLocaleString()}/{contextStatus.limit.toLocaleString()} tokens
@@ -579,19 +579,19 @@ export default function ChatInput({
 
       {/* Error Toast Notification */}
       {showErrorToast && error && (
-        <div className="fixed top-4 right-4 z-50 max-w-md">
-          <div className="bg-red-50 border border-red-200 rounded-lg shadow-lg p-4 animate-in slide-in-from-right duration-300">
+        <div className="fixed top-1 sm:top-2 md:top-4 right-1 sm:right-2 md:right-4 z-50 max-w-[260px] sm:max-w-[280px] md:max-w-md">
+          <div className="bg-red-50 border border-red-200 rounded-lg shadow-lg p-2 sm:p-3 md:p-4 animate-in slide-in-from-right duration-300">
             <div className="flex items-start">
               <div className="flex-shrink-0">
-                <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
               </div>
-              <div className="ml-3 flex-1">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <div className="mt-1 text-sm text-red-700">{error}</div>
+              <div className="ml-1.5 sm:ml-2 md:ml-3 flex-1">
+                <h3 className="text-xs sm:text-sm font-medium text-red-800">Error</h3>
+                <div className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-red-700">{error}</div>
               </div>
-              <div className="ml-4 flex-shrink-0">
+              <div className="ml-1.5 sm:ml-2 md:ml-4 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => {
@@ -600,7 +600,7 @@ export default function ChatInput({
                   }}
                   className="inline-flex text-red-400 hover:text-red-600"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
                 </button>
               </div>
             </div>
@@ -610,15 +610,15 @@ export default function ChatInput({
       <form ref={formRef} onSubmit={handleSubmit}>
         {/* File preview section */}
         {preFile.length > 0 && (
-          <div className="mb-2 p-2 bg-white/50 rounded-lg border border-gray-200">
-            <div className="flex flex-wrap gap-2">
+          <div className="mb-1.5 sm:mb-2 p-1.5 sm:p-2 bg-white/50 rounded-lg border border-gray-200">
+            <div className="flex flex-wrap gap-1 sm:gap-2">
               {preFile.map((file, index) => (
                 <div key={index} className="relative group">
-                  <div className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200">
+                  <div className="flex items-center gap-1 sm:gap-2 p-1 sm:p-1.5 md:p-2 bg-white rounded border border-gray-200">
                     {file.type === 'application/pdf' && (
-                      <FileText className="w-4 h-4 text-red-600" />
+                      <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-red-600" />
                     )}
-                    <div className="text-sm text-gray-600 truncate max-w-[100px] sm:max-w-[120px]">
+                    <div className="text-xs sm:text-sm text-gray-600 truncate max-w-[70px] sm:max-w-[80px] md:max-w-[100px] lg:max-w-[120px]">
                       {file.name}
                     </div>
                     <div className="text-xs text-gray-400 hidden sm:block">
@@ -630,7 +630,7 @@ export default function ChatInput({
                         onClick={() => removeFile(index)}
                         className="text-red-500 hover:text-red-700"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
                       </button>
                     )}
                   </div>
@@ -679,294 +679,306 @@ export default function ChatInput({
 
         {/* Recording indicator */}
         {isRecording && (
-          <div className="mb-2 p-3 bg-gray-500 border border-red-200 rounded-lg flex items-center gap-2">
-            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-            <span className="text-red-700 text-sm font-medium">Recording... Speak now</span>
+          <div className="mb-1.5 sm:mb-2 p-1.5 sm:p-2 md:p-3 bg-gray-500 border border-red-200 rounded-lg flex items-center gap-1.5 sm:gap-2">
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 rounded-full animate-pulse"></div>
+            <span className="text-red-700 text-xs sm:text-sm font-medium">Recording... Speak now</span>
           </div>
         )}
 
-        <div className={containerClassName}>
-          {/* Auto-expanding text input */}
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={status === 'streaming' || isProcessingPdf}
-            placeholder={placeholderText}
-  
-            className="flex-1 px-4 py-3 bg-transparent border-none outline-none text-white placeholder-white text-lg disabled:opacity-50 resize-none overflow-hidden max-h-[200px] min-h-[48px]  "
-            rows={1}
-          />
-          <div className="flex relative justify-center hover:bg-gray-600/80 rounded-lg" ref={toolsMenuRef}>
-            <button
-              type="button"
-              onClick={handleToolsToggle}
-              className="p-2 text-white hover:text-blue-300 
-              transition-colors relative group/tooltip"
-              title="Tools"
-            >
-              {documentMode ? (
-                <FileText className="w-5 h-5 text-blue-600" />
-              ) : webSearchEnabled ? (
-                <Globe className="w-5 h-5" />
-              ) : imageGenerationMode ? (
-                <Palette className="w-5 h-5 text-purple-600" />
-              ) : weatherMode ? (
-                <CloudSun className="w-5 h-5 text-cyan-600" />
-              ) : (
-                <SlidersHorizontal className="w-5 h-5" />
-              )}
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                {documentMode ? 'Document Mode' : imageGenerationMode ? 'Image Generation Mode' : weatherMode ? 'Weather Mode' : 'Tools'}
-              </div>
-            </button>
-            
-            {showTools && (
-              <div className="absolute bottom-full right-0 mb-2 w-48 sm:w-64 bg-gray-600/80 rounded-xl border border-gray-200 shadow-lg p-2 z-20">
-                              <div className="flex flex-col">
-                <button 
-                  onClick={() => handleToolSelect('web')} 
-                  disabled={documentMode || weatherMode}
-                  className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors  ${
-                    documentMode || weatherMode
-                      ? 'opacity-50 cursor-not-allowed text-gray-400'
-                      : webSearchEnabled 
-                      ? 'bg-cyan-200 text-cyan-700 hover:bg-cyan-200'
-                        : 'hover:bg-cyan-100 hover:text-gray-900'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <Globe className="w-4 h-4" />
-                    Web Search
-                    {webSearchEnabled && !documentMode && !weatherMode && <span className="text-xs font-medium">(ON)</span>}
-                  </span>
-                </button>
-               
-                  
-                  <button 
-                    onClick={() => handleToolSelect('doc')} 
-                    className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                      documentMode 
-                        ? 'bg-gray-400/80 text-gray-100 hover:bg-gray-500/80' 
-                      : 'hover:bg-blue-100 hover:text-gray-900'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      Document
-                      {documentMode && <span className="text-xs font-medium">(ON)</span>}
-                    </span>
-                  </button>
-
-                  <button 
-                    onClick={() => handleToolSelect('generate-image')} 
-                    disabled={documentMode || webSearchEnabled || weatherMode}
-                    className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                      documentMode || webSearchEnabled || weatherMode
-                        ? 'opacity-50 cursor-not-allowed text-gray-400'
-                        : imageGenerationMode 
-                        ? 'bg-purple-200 text-purple-700 hover:bg-purple-200' 
-                        : 'hover:bg-purple-100 hover:text-gray-900'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Palette className="w-4 h-4" />
-                      Generate Image
-                      {imageGenerationMode && <span className="text-xs font-medium">(ON)</span>}
-                    </span>
-                  </button>
-               
-                  <button 
-                    onClick={() => handleToolSelect('weather')} 
-                    disabled={documentMode || imageGenerationMode || webSearchEnabled}
-                    className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                      documentMode || imageGenerationMode || webSearchEnabled
-                        ? 'opacity-50 cursor-not-allowed text-gray-400' 
-                        : weatherMode
-                        ? 'bg-cyan-200 text-cyan-700 hover:bg-cyan-200'
-                        : 'hover:bg-cyan-100 hover:text-gray-900'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <CloudSun className="w-4 h-4" />
-                      Weather
-                      {weatherMode && <span className="text-xs font-medium">(ON)</span>}
-                    </span>
-                  </button>
-                  <button 
-                    onClick={() => handleToolSelect('research')} 
-                    disabled={documentMode || imageGenerationMode || weatherMode}
-                    className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                      documentMode || imageGenerationMode || weatherMode
-                        ? 'opacity-50 cursor-not-allowed text-gray-400' 
-                        : 'hover:bg-blue-100 hover:text-gray-900'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2"><FlaskConical className="w-4 h-4" />Deep Research</span>
-                  </button>
-                </div>
-              </div>
-            )}
+                <div className={containerClassName}>
+          {/* First row - Text input (mobile) / Full width (desktop) */}
+          <div className="flex-1 w-full">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={status === 'streaming' || isProcessingPdf}
+              placeholder={placeholderText}
+      
+              className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 bg-transparent overflow-y-auto border-none outline-none text-white placeholder-white text-sm sm:text-base md:text-lg disabled:opacity-50 resize-none overflow-hidden max-h-[150px] sm:max-h-[180px] md:max-h-[200px] min-h-[36px] sm:min-h-[40px] md:min-h-[48px]"
+              rows={1}
+            />
           </div>
-          
-          {/* Model selector */}
-          <div className="flex relative justify-center" ref={modelMenuRef}>
-            <button
-              type="button"
-              onClick={handleModelMenuToggle}
-              className="px-3 py-2 text-sm text-gray-700 bg-gray-600/80 border-2 border-gray-200  rounded-lg hover:text-blue-600 hover:border-blue-400 transition-colors relative group/tooltip"
-              title={`Current: ${selectedModelLabel}`}
-            >
-              <div className="flex items-center gap-2">
-                
-                <span className="text-xs bg-blue-100 px-2 py-1 rounded text-blue-700">
-                  {modelOptions.find(m => m.value === model)?.provider === 'google' ? modelOptions.find(m => m.value === model)?.label : modelOptions.find(m => m.value === model)?.label}
-                </span>
-              </div>
-            </button>
-            {showModelMenu && (
-              <div className="absolute bottom-full right-0 mb-2 w-64 sm:w-80 bg-gray-600/80 rounded-xl border border-gray-200 shadow-lg p-2 z-20">
-                <div className="p-2 text-xs text-gray-100">Current: {selectedModelLabel}</div>
-                {isLoadingModels ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    <span className="text-sm text-gray-500">Loading models...</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col">
-                    {modelOptions.map(opt => (
-                      <button
-                        key={opt.value}
-                        onClick={() => opt.isAvailable ? handleModelSelect(opt.value) : null}
-                        disabled={!opt.isAvailable}
-                        className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                          !opt.isAvailable 
-                            ? 'opacity-50 cursor-not-allowed text-gray-900' 
-                            : model === opt.value 
-                            ? 'bg-gray-500 text-white' 
-                            : 'hover:bg-gray-500 text-gray-100'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <LuCpu className="w-4 h-4" />
-                          <div className="text-left">
-                            <div className="text-sm font-medium">{opt.label}</div>
-                            <div className="text-xs text-gray-100">
-                              {opt.provider === 'google' ? 'Google AI' : 'OpenRouter'}
-                              {opt.isDefault && ' (Default)'}
-                              {!opt.isAvailable && ' (Unavailable)'}
+
+          {/* Second row - Action buttons (mobile) / Side by side (desktop) */}
+          <div className="flex items-center justify-between gap-1 sm:gap-2 md:gap-3">
+            {/* Model selector - Left side */}
+            <div className="flex relative justify-center" ref={modelMenuRef}>
+              <button
+                type="button"
+                onClick={handleModelMenuToggle}
+                className="px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 md:py-2 text-xs sm:text-sm text-gray-700 bg-gray-600/80 border-2 border-gray-200  rounded-lg hover:text-blue-600 hover:border-blue-400 transition-colors relative group/tooltip"
+                title={`Current: ${selectedModelLabel}`}
+              >
+                <div className="flex items-center gap-1 sm:gap-2">
+                  
+                  <span className="text-xs bg-blue-100 px-1 sm:px-2 py-0.5 sm:py-1 rounded text-blue-700 truncate max-w-[50px] sm:max-w-[60px] md:max-w-[80px] lg:max-w-none">
+                    {modelOptions.find(m => m.value === model)?.provider === 'google' ? modelOptions.find(m => m.value === model)?.label : modelOptions.find(m => m.value === model)?.label}
+                  </span>
+                </div>
+              </button>
+              {showModelMenu && (
+                <div className="absolute bottom-full left-0 mb-2 w-48 sm:w-56 md:w-64 lg:w-80 bg-gray-600/80 rounded-xl border border-gray-200 shadow-lg p-1.5 sm:p-2 z-20">
+                  <div className="p-2 text-xs text-gray-100">Current: {selectedModelLabel}</div>
+                  {isLoadingModels ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      <span className="text-sm text-gray-500">Loading models...</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col">
+                      {modelOptions.map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => opt.isAvailable ? handleModelSelect(opt.value) : null}
+                          disabled={!opt.isAvailable}
+                          className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                            !opt.isAvailable 
+                              ? 'opacity-50 cursor-not-allowed text-gray-900' 
+                              : model === opt.value 
+                              ? 'bg-gray-500 text-white' 
+                              : 'hover:bg-gray-500 text-gray-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <LuCpu className="w-4 h-4" />
+                            <div className="text-left">
+                              <div className="text-sm font-medium">{opt.label}</div>
+                              <div className="text-xs text-gray-100">
+                                {opt.provider === 'google' ? 'Google AI' : 'OpenRouter'}
+                                {opt.isDefault && ' (Default)'}
+                                {!opt.isAvailable && ' (Unavailable)'}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        {model === opt.value && opt.isAvailable && (
-                          <span className="text-gray-800 text-xs bg-blue-200 px-2 py-1 rounded">Selected</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* File input button */}
-          <button
-            type="button"
-            onClick={handleFileInputClick}
-            disabled={isFileUploadDisabled}
-            className={`p-2 transition-colors relative group/tooltip ${
-              isFileUploadDisabled
-                ? 'text-gray-300 cursor-not-allowed' 
-                : 'text-gray-100 hover:text-blue-300 hover:bg-gray-600/80 rounded-lg'
-            }`}
-            title={
-              documentMode 
-                ? "Image upload disabled in document mode"
-                : webSearchEnabled 
-                ? "File upload disabled when web search is enabled"
-                : weatherMode
-                ? "File upload disabled in weather mode"
-                : "Attach files"
-            }
-          >
-            <Paperclip className="w-5 h-5" />
-                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-              {documentMode 
-                ? "Image upload disabled in document mode"
-                : webSearchEnabled 
-                ? "File upload disabled when web search is enabled"
-                : weatherMode
-                ? "File upload disabled in weather mode"
-                : "Attach Files"
-            }
-            </div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              multiple
-              className="hidden"
-              accept="image/*"
-            />
-          </button>
-
-          {/* Hidden document input */}
-          <input
-            type="file"
-            ref={documentInputRef}
-            onChange={handleDocumentChange}
-            className="hidden"
-            accept="application/pdf,.pdf,.doc,.docx,.txt"
-          />
-          
-          {/* Dictation button */}
-          <DictationButton
-            onTranscript={handleTranscript}
-            onRecordingChange={setIsRecording}
-            disabled={status === 'streaming' || isProcessingPdf}
-            size="md"
-            showTooltip={true}
-          />
-
-          {/* Submit or stop button */}
-          {status === 'streaming' ? (
-            
-            <button
-              type="button"
-              onClick={onStop}
-              className="px-4 py-3 bg-gradient-to-r from-gray-500 to-gray-500 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-colors flex items-center justify-center relative group/tooltip"
-              title="Stop Generation"
-            >
-              <div>
-         
-              <Square className="w-5 h-5 text-red-400 bg-red-400 rounded-sm " >
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                Stop Generation
-              </div>
-              </Square>
-              
-              </div>
-            </button>
-          ) : (!isRecording && (
-            <button 
-              type="submit" 
-              disabled={isSubmitDisabled}
-              className="px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-colors flex items-center justify-center relative group/tooltip"
-              title="Send Message"
-            >
-              {(isSending || status === 'preparing') ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
+                          {model === opt.value && opt.isAvailable && (
+                            <span className="text-gray-800 text-xs bg-blue-200 px-2 py-1 rounded">Selected</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                {(isSending || status === 'preparing') ? 'Sending...' : 'Send Message'}
-              </div>
-            </button>
-          ))}
+            </div>
+
+                          {/* Right side buttons */}
+              <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+                {/* Tools button */}
+                <div className="flex items-center justify-center hover:bg-gray-600/80 rounded-lg" ref={toolsMenuRef}>
+                  <button
+                    type="button"
+                    onClick={handleToolsToggle}
+                    className="p-1 sm:p-1.5 md:p-2 text-white hover:text-blue-300 
+                    transition-colors relative group/tooltip"
+                    title="Tools"
+                  >
+                    {documentMode ? (
+                      <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-blue-600" />
+                    ) : webSearchEnabled ? (
+                      <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                    ) : imageGenerationMode ? (
+                      <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-purple-600" />
+                    ) : weatherMode ? (
+                      <CloudSun className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-cyan-600" />
+                    ) : (
+                      <SlidersHorizontal className="w-5 h-5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                    )}
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                      {documentMode ? 'Document Mode' : imageGenerationMode ? 'Image Generation Mode' : weatherMode ? 'Weather Mode' : 'Tools'}
+                    </div>
+                  </button>
+                  
+                  {showTools && (
+                    <div className="absolute bottom-full right-0 mb-2 w-36 sm:w-40 md:w-48 lg:w-64 bg-gray-600/80 rounded-xl border border-gray-200 shadow-lg p-1.5 sm:p-2 z-20">
+                                    <div className="flex flex-col">
+                      <button 
+                        onClick={() => handleToolSelect('web')} 
+                        disabled={documentMode || weatherMode}
+                        className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors  ${
+                          documentMode || weatherMode
+                            ? 'opacity-50 cursor-not-allowed text-gray-400'
+                            : webSearchEnabled 
+                            ? 'bg-cyan-200 text-cyan-700 hover:bg-cyan-200'
+                              : 'hover:bg-cyan-100 hover:text-gray-900'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Globe className="w-4 h-4" />
+                          Web Search
+                          {webSearchEnabled && !documentMode && !weatherMode && <span className="text-xs font-medium">(ON)</span>}
+                        </span>
+                      </button>
+                     
+                        
+                        <button 
+                          onClick={() => handleToolSelect('doc')} 
+                          className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                            documentMode 
+                              ? 'bg-gray-400/80 text-gray-100 hover:bg-gray-500/80' 
+                            : 'hover:bg-blue-100 hover:text-gray-900'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <FileText className="w-4 h-4" />
+                            Document
+                            {documentMode && <span className="text-xs font-medium">(ON)</span>}
+                          </span>
+                        </button>
+
+                        <button 
+                          onClick={() => handleToolSelect('generate-image')} 
+                          disabled={documentMode || webSearchEnabled || weatherMode}
+                          className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                            documentMode || webSearchEnabled || weatherMode
+                              ? 'opacity-50 cursor-not-allowed text-gray-400'
+                              : imageGenerationMode 
+                              ? 'bg-purple-200 text-purple-700 hover:bg-purple-200' 
+                              : 'hover:bg-purple-100 hover:text-gray-900'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <Palette className="w-4 h-4" />
+                            Generate Image
+                            {imageGenerationMode && <span className="text-xs font-medium">(ON)</span>}
+                          </span>
+                        </button>
+                     
+                        <button 
+                          onClick={() => handleToolSelect('weather')} 
+                          disabled={documentMode || imageGenerationMode || webSearchEnabled}
+                          className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                            documentMode || imageGenerationMode || webSearchEnabled
+                              ? 'opacity-50 cursor-not-allowed text-gray-400' 
+                              : weatherMode
+                              ? 'bg-cyan-200 text-cyan-700 hover:bg-cyan-200'
+                              : 'hover:bg-cyan-100 hover:text-gray-900'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <CloudSun className="w-4 h-4" />
+                            Weather
+                            {weatherMode && <span className="text-xs font-medium">(ON)</span>}
+                          </span>
+                        </button>
+                        <button 
+                          onClick={() => handleToolSelect('research')} 
+                          disabled={documentMode || imageGenerationMode || weatherMode}
+                          className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                            documentMode || imageGenerationMode || weatherMode
+                              ? 'opacity-50 cursor-not-allowed text-gray-400' 
+                              : 'hover:bg-blue-100 hover:text-gray-900'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2"><FlaskConical className="w-4 h-4" />Deep Research</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* File input button */}
+                <div className="flex items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={handleFileInputClick}
+                    disabled={isFileUploadDisabled}
+                    className={`p-1 sm:p-1.5 md:p-2 transition-colors relative group/tooltip hover:bg-gray-600/80 rounded-lg ${
+                      isFileUploadDisabled
+                        ? 'text-gray-300 cursor-not-allowed' 
+                        : 'text-gray-100 hover:text-blue-300'
+                    }`}
+                    title={
+                      documentMode 
+                        ? "Image upload disabled in document mode"
+                        : webSearchEnabled 
+                        ? "File upload disabled when web search is enabled"
+                        : weatherMode
+                        ? "File upload disabled in weather mode"
+                        : "Attach files"
+                    }
+                  >
+                    <Paperclip className="w-5 h-5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                      {documentMode 
+                        ? "Image upload disabled in document mode"
+                        : webSearchEnabled 
+                        ? "File upload disabled when web search is enabled"
+                        : weatherMode
+                        ? "File upload disabled in weather mode"
+                        : "Attach Files"
+                    }
+                    </div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      multiple
+                      className="hidden"
+                      accept="image/*"
+                    />
+                  </button>
+                </div>
+
+              {/* Hidden document input */}
+              <input
+                type="file"
+                ref={documentInputRef}
+                onChange={handleDocumentChange}
+                className="hidden"
+                accept="application/pdf,.pdf,.doc,.docx,.txt"
+              />
+              
+              {/* Dictation button */}
+              <DictationButton
+                onTranscript={handleTranscript}
+                onRecordingChange={setIsRecording}
+                disabled={status === 'streaming' || isProcessingPdf}
+                size="md"
+                showTooltip={true}
+              />
+
+              {/* Submit or stop button */}
+              {status === 'streaming' ? (
+                
+                <button
+                  type="button"
+                  onClick={onStop}
+                  className="px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 bg-gradient-to-r from-gray-500 to-gray-500 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-colors flex items-center justify-center relative group/tooltip"
+                  title="Stop Generation"
+                >
+                  <div>
+             
+                  <Square className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-red-400 bg-red-400 rounded-sm " >
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                    Stop Generation
+                  </div>
+                  </Square>
+                  
+                  </div>
+                </button>
+              ) : (!isRecording && (
+                <button 
+                  type="submit" 
+                  disabled={isSubmitDisabled}
+                  className="px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-colors flex items-center justify-center relative group/tooltip"
+                  title="Send Message"
+                >
+                  {(isSending || status === 'preparing') ? (
+                    <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 animate-spin" />
+                  ) : (
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  )}
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                    {(isSending || status === 'preparing') ? 'Sending...' : 'Send Message'}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </form>
     </div>
