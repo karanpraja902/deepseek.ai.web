@@ -21,11 +21,14 @@ const STATIC_USER_ID = 'static_user_karanao';
 
 
 export default function ChatPage() {
+// Timer state variables
   const params = useParams();
-  console.log("Params:", params);
-  const chatId = params.id as string;
-
-  // Timer state variables
+  const [chatId, setChatId] = useState<string | null>(null);
+useEffect(() => {
+  if (params.id) {
+    setChatId(params.id as string);
+  }
+}, [params.id]);
   const [model, setModel] = useState('google');
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
   const [responseTime, setResponseTime] = useState<number | null>(null);
@@ -43,6 +46,7 @@ export default function ChatPage() {
   const [userScrolledUp, setUserScrolledUp] = useState(false);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
 
   // Preconnect to API endpoint for faster requests
   useEffect(() => {
@@ -249,8 +253,8 @@ export default function ChatPage() {
             console.log("ImageGenMessages:", messages);
             // Save both messages to database
             try {
-              await saveMessage(chatId, userMessage);
-              await saveMessage(chatId, assistantMessage);
+              await saveMessage(chatId as string, userMessage);
+              await saveMessage(chatId as string, assistantMessage);
             } catch (error) {
               console.error('Failed to save image generation messages to database:', error);
             }
@@ -313,8 +317,8 @@ export default function ChatPage() {
 
               // Save both messages to database
               try {
-                await saveMessage(chatId, userMessage);
-                await saveMessage(chatId, assistantMessage);
+                await saveMessage(chatId as string, userMessage);
+                await saveMessage(chatId as string, assistantMessage);
               } catch (error) {
                 console.error('Failed to save weather messages to database:', error);
               }
@@ -388,8 +392,8 @@ export default function ChatPage() {
 
               // Save both messages to database
               try {
-                await saveMessage(chatId, userMessage);
-                await saveMessage(chatId, assistantMessage);
+                await saveMessage(chatId as string, userMessage);
+                await saveMessage(chatId as string, assistantMessage);
               } catch (error) {
                 console.error('Failed to save web search messages to database:', error);
               }
@@ -506,8 +510,8 @@ export default function ChatPage() {
 
             // Save both messages to database
             try {
-              await saveMessage(chatId, userMessage);
-              await saveMessage(chatId, assistantMessage);
+              await saveMessage(chatId as string, userMessage);
+              await saveMessage(chatId as string, assistantMessage);
             } catch (error) {
               setStatus('idle');
               console.error('Failed to save document analysis messages to database:', error);
@@ -609,7 +613,7 @@ export default function ChatPage() {
             if ((chunkBuffer.length >= 500 || (now - lastUpdateTime >= 2000 && chunkBuffer.length > 0)) && accumulatedText.trim()) {
               // Non-blocking background save using setTimeout for browser compatibility
               setTimeout(() => {
-                ChatApiService.addMessage(chatId, 'assistant', accumulatedText)
+                ChatApiService.addMessage(chatId as string, 'assistant', accumulatedText)
                   .catch(err => console.error('Background save failed:', err));
               }, 0);
               chunkBuffer = '';
@@ -660,10 +664,10 @@ export default function ChatPage() {
             parts: [{ type: 'text', text: accumulatedText }],
             createdAt: new Date()
           };
-          await saveMessage(chatId, userMessage);
-          await saveMessage(chatId, finalAssistantMessage);
+          await saveMessage(chatId as string, userMessage);
+          await saveMessage(chatId as string, finalAssistantMessage);
         } catch (error) {
-          await saveMessage(chatId, userMessage);
+          await saveMessage(chatId as string, userMessage);
 
           console.error('Failed to save assistant message to database:', error);
           setStatus('idle');
@@ -863,7 +867,6 @@ export default function ChatPage() {
   
   // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [recentChats, setRecentChats] = useState<any[]>([]);
   const [isLoadingChats, setIsLoadingChats] = useState(true);
 
   console.log("setmodel:", model);
@@ -1174,26 +1177,24 @@ export default function ChatPage() {
     setSidebarOpen(!sidebarOpen);
   };
 
-  const createNewChat = async () => {
-    try {
-      console.log("create new chat api", STATIC_USER_ID)
-      const response = await ChatApiService.createChat(STATIC_USER_ID); 
-      console.log("response.data.chat:", response.data.chat)
-      if (response.success && response.data.chat) {
-        // Navigate to new chat
-        console.log("response.data.chat._id:", response.data.chat._id)
-        window.location.href = `/chat/${response.data.chat._id}`;
-      }
-    } catch (error) {
-      console.error('Failed to create new chat:', error);
-      toast.error('Failed to create new chat');
-    }
-  };
 
-  const handleChatSelect = (selectedChatId: string) => {
+  const handleChatSelect =async (selectedChatId: string) => {
+    console.log("handleChatSelect selectedChatId:", selectedChatId);
+ const newUrl = `/chat/${selectedChatId}`
+ console.log("handleChatSelect newUrl:", newUrl);
     if (selectedChatId !== chatId) {
-      window.location.href = `/chat/${selectedChatId}`;
+    window.history.replaceState({ path: newUrl }, '', newUrl);
+    setChatId(selectedChatId);
     }
+    const response = await ChatApiService.getChat(selectedChatId);
+    console.log("handleChatSelect response:", response);
+    if (response.success) {
+      
+      console.log("response.data.messages:", response.data.chat.messages);
+      
+      setMessages(response.data.chat.messages);
+    }
+    
   };
 
   const handleModelChange = (newModel: string) => {
@@ -1201,26 +1202,9 @@ export default function ChatPage() {
     toast.success(`Switched to ${getModelDisplayName(newModel)}`);
   };
 
-  // Load recent chats
-  useEffect(() => {
-    const loadRecentChats = async () => {
-      try {
-        setIsLoadingChats(true);
-        const response = await ChatApiService.getUserChats(STATIC_USER_ID);
-        if (response.success) {
-          setRecentChats(response.data.chats || []);
-        }
-      } catch (error) {
-        console.error('Failed to load recent chats:', error);
-      } finally {
-        setIsLoadingChats(false);
-      }
-    };
 
-    if (isUserInitialized) {
-      loadRecentChats();
-    }
-  }, [isUserInitialized]);
+  // Load recent chats
+ 
 
 
   useEffect(() => {
@@ -1249,7 +1233,6 @@ export default function ChatPage() {
           console.error('Invalid chatId for loadExistingMessages:', chatId);
           return;
         }
-
         // Use the API service instead of direct fetch
         const response = await ChatApiService.getChat(chatId);
         const existingChat = response?.data?.chat;
@@ -1261,6 +1244,7 @@ export default function ChatPage() {
             return {
               id: msg.parts[0]._id,
               role: msg.role,
+              parts: msg.parts || [{ type: 'text', text: msg.content }],
               content: msg.content,
               createdAt: msg.timestamp,
               files: msg.files || []
@@ -1270,15 +1254,7 @@ export default function ChatPage() {
           setMessages(uiMessages);
         }
 
-        // Load user profile with memory context
-        if (isUserInitialized) {
-          const userResponse = await AuthApiService.getUserWithMemory(STATIC_USER_ID);
-          console.log("userResponse:", userResponse);
-          if (userResponse.success) {
-
-            setUserProfile(userResponse.memory);
-          }
-        }
+        
       } catch (error) {
         console.error('Failed to load existing messages:', error);
       } finally {
@@ -1353,22 +1329,22 @@ export default function ChatPage() {
       </div>
     );
   }
+  console.log("messagesaaaaaaaaaaa:", messages);
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Sidebar - Always rendered, but shown differently based on screen size */}
-       <Sidebar
-        isOpen={sidebarOpen}
-        onToggle={toggleSidebar}
-        recentChats={recentChats}
-        currentChatId={chatId}
-        onChatSelect={handleChatSelect}
-        onCreateNewChat={createNewChat}
-        onModelChange={handleModelChange}
-        currentModel={model}
-        userId={STATIC_USER_ID}
-        isLoadingChats={isLoadingChats}
-      />
+             {/* Sidebar - Always rendered, but shown differently based on screen size */}
+        <Sidebar
+        setChatId={setChatId}
+         isOpen={sidebarOpen}
+         onToggle={toggleSidebar}
+         isUserInitialized={isUserInitialized}
+         currentChatId={chatId as string}
+         onChatSelect={handleChatSelect}
+         onModelChange={handleModelChange}
+         currentModel={model}
+         userId={STATIC_USER_ID}
+       />
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden bg-gray-700/80">
@@ -2035,7 +2011,7 @@ export default function ChatPage() {
           sendMessage={sendMessageWithUser}
           status={status}
           onStop={stop}
-          chatId={chatId}
+          chatId={chatId as string}
           messages={messages}
           setModel={setModel}
           model={model}

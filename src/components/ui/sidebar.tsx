@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useState } from 'react';
 import {
   MessageSquare, 
@@ -20,43 +20,108 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useResponsive } from '../../hooks/use-mobile';
-
+import { ChatApiService } from '@/services/api';
+const STATIC_USER_ID = 'static_user_karanao';
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
-  recentChats: any[];
+ setChatId: (chatId: string) => void;
   currentChatId: string;
   onChatSelect: (chatId: string) => void;
-  onCreateNewChat: () => void;
   onModelChange: (model: string) => void;
   currentModel: string;
   userId: string;
-  isLoadingChats?: boolean;
+  isUserInitialized?: boolean;
+  
 }
 
 export default function Sidebar({
   isOpen,
   onToggle,
-  recentChats,
+  setChatId,
   currentChatId,
   onChatSelect,
-onCreateNewChat,
   onModelChange,
   currentModel,
   userId,
-  isLoadingChats = false
+  isUserInitialized,
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [hoveredChatId, setHoveredChatId] = useState<string | null>(null);
+  const [isLoadingChats, setIsLoadingChats] = useState(false);
   const { isMobile, isTablet, isLaptop, isDesktop, isWide } = useResponsive();
 
+  const [recentChats, setRecentChats] = useState<any[]>([]);
   // Auto-close sidebar on mobile when selecting a chat
-  const handleChatSelect = (chatId: string) => {
-    onChatSelect(chatId);
-    if (isMobile || isTablet) {
-      onToggle(); // Close sidebar on mobile/tablet after chat selection
+   useEffect(() => {
+    const loadRecentChats = async () => {
+      try {
+        setIsLoadingChats(true);
+        const response = await ChatApiService.getUserChats(STATIC_USER_ID);
+        if (response.success) {
+          setRecentChats(response.data.chats || []);
+        }
+      } catch (error) {
+        console.error('Failed to load recent chats:', error);
+      } finally {
+        setIsLoadingChats(false);
+      }
+    };
+
+    if (isUserInitialized) {
+      loadRecentChats();
     }
+  }, [isUserInitialized]);
+
+  const createNewChat = async () => {
+    try {
+      const response = await ChatApiService.createChat(STATIC_USER_ID); 
+      if (response.success && response.data.chat) {
+        const response=await ChatApiService.getUserChats(STATIC_USER_ID);
+        console.log("response.data.chats:", response.data.chats)
+        setRecentChats(response.data.chats || []);
+        let id=response.data.chat._id;
+        const newUrl = `/chat/${response.data.chat._id}`
+     window.history.replaceState({ path: newUrl }, '', newUrl);
+    setChatId(id);  
+      }
+    } catch (error) {
+      toast.error('Failed to create new chat'+error);
+    }
+  };
+  const handleDeleteChat = async (chatIdToDelete: string) => {
+    try {
+      // Call the delete API
+      await ChatApiService.deleteChat(chatIdToDelete);
+      
+      // Remove the chat from the recent chats list
+      setRecentChats(prevChats => prevChats.filter(chat => chat.id !== chatIdToDelete));
+      
+      // If the current chat is being deleted, redirect to home
+      if (chatIdToDelete === currentChatId) {
+        window.location.href = '/';
+      }
+      
+      toast.success('Chat deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete chat:', error);
+      toast.error('Failed to delete chat');
+      throw error; // Re-throw so the sidebar can handle the error state
+    }
+  };
+    const handleChatSelect =async (chatId: string) => {
+    onChatSelect(chatId);
+    const response = await ChatApiService.getChat(chatId);
+    if (response.success) {
+      console.log("response.data.messages:", response.data.chat.messages);
+      // setRecentChats(response.data.chat.messages);
+    }
+
+    // if (isMobile || isTablet) {
+    //   onToggle(); // Close sidebar on mobile/tablet after chat selection
+    // }
   };
 
   const getModelDisplayName = (model: string) => {
@@ -95,6 +160,8 @@ onCreateNewChat,
     setUserMenuOpen(false);
   };
 
+
+
   // For mobile and tablet screens, render as overlay
   if (isMobile || isTablet||isLaptop) {
     if (!isOpen) {
@@ -127,7 +194,7 @@ onCreateNewChat,
           {/* New Chat Button */}
           <div className="p-4 border-b border-gray-700">
             <button
-              onClick={onCreateNewChat}
+              onClick={createNewChat}
               className="w-full flex items-center justify-center gap-2 bg-gray-600 text-white py-3 px-4 rounded-md hover:bg-gray-500 transition-colors"
             >
               <Plus className="w-5 h-5" />
@@ -166,22 +233,42 @@ onCreateNewChat,
               ) : (
                 <div className="space-y-1">
                   {filteredChats.map((chat: any) => (
-                    <button
+                    <div
                       key={chat.id}
-                      onClick={() => handleChatSelect(chat.id)}
-                      className={`w-full text-left p-3 rounded-md flex flex-col ${
-                        currentChatId === chat.id 
-                          ? 'bg-blue-600 text-white' 
-                          : 'hover:bg-gray-700 text-gray-300'
-                      }`}
+                      className="relative group"
+                      onMouseEnter={() => setHoveredChatId(chat.id)}
+                      onMouseLeave={() => setHoveredChatId(null)}
                     >
-                      <span className="truncate font-medium text-sm">
-                        {chat.title || 'New Chat'}
-                      </span>
-                      <span className="text-xs text-gray-400 mt-1">
-                        {formatChatDate(chat.updatedAt || chat.createdAt)}
-                      </span>
-                    </button>
+                      <button
+                        onClick={() => handleChatSelect(chat.id)}
+                        className={`w-full text-left p-3 rounded-md flex flex-col ${
+                        currentChatId === chat.id 
+                            ? 'bg-blue-600 text-white' 
+                            : 'hover:bg-gray-700 text-gray-300'
+                        }`}
+                      >
+                        <span className="truncate font-medium text-sm pr-8">
+                          {chat.title || 'New Chat'}
+                        </span>
+                        <span className="text-xs text-gray-400 mt-1">
+                          {formatChatDate(chat.updatedAt || chat.createdAt)}
+                        </span>
+                      </button>
+                      
+                      {/* Delete button that appears on hover */}
+                      {hoveredChatId === chat.id && currentChatId !== chat.id && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteChat(chat.id);
+                          }}
+                          className="absolute top-2 right-2 p-1.5 rounded-md bg-red-500 hover:bg-red-600 text-white opacity-90 hover:opacity-100 transition-all duration-200"
+                          title="Delete chat"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}
@@ -270,7 +357,7 @@ onCreateNewChat,
       {/* New Chat Button */}
       <div className="p-4 border-gray-200">
         <button
-          onClick={onCreateNewChat}
+          onClick={createNewChat}
           className="w-full flex items-center justify-center gap-2 bg-gray-700 text-white py-2 px-4 rounded-md hover:bg-gray-300 hover:text-gray-900 transition-colors"
         >
           {isOpen ? (
@@ -317,28 +404,48 @@ onCreateNewChat,
           ) : (
             <div className="space-y-1">
               {isOpen && filteredChats.map((chat: any) => (
-                <button
+                <div
                   key={chat.id}
-                  onClick={() => onChatSelect(chat.id)}
-                  className={`w-full text-left p-2 rounded-md flex ${
-                    currentChatId === chat.id 
-                      ? 'bg-blue-50 text-blue-600' 
-                      : 'hover:bg-gray-500 hover:text-white'
-                  } ${isOpen ? 'flex-col' : 'justify-center'}`}
+                  className="relative group"
+                  onMouseEnter={() => setHoveredChatId(chat.id)}
+                  onMouseLeave={() => setHoveredChatId(null)}
                 >
-                  {isOpen ? (
-                    <>
-                      <span className={`truncate font-medium ${isTablet ? 'text-xs' : 'text-sm'}`}>
-                        {chat.title || 'New Chat'}
-                      </span>
-                      <span className={`text-xs ${isTablet ? 'text-xs' : 'text-xs'}`}>
-                        {formatChatDate(chat.updatedAt || chat.createdAt)}
-                      </span>
-                    </>
-                  ) : (
-                    <MessageSquare className="w-5 h-5" />
+                  <button
+                    onClick={() => onChatSelect(chat.id)}
+                    className={`w-full text-left p-2 rounded-md flex ${
+                      currentChatId === chat.id 
+                        ? 'bg-blue-50 text-blue-600' 
+                        : 'hover:bg-gray-500 hover:text-white'
+                    } ${isOpen ? 'flex-col' : 'justify-center'}`}
+                  >
+                    {isOpen ? (
+                      <>
+                        <span className={`truncate font-medium pr-6 ${isTablet ? 'text-xs' : 'text-sm'}`}>
+                          {chat.title || 'New Chat'}
+                        </span>
+                        <span className={`text-xs ${isTablet ? 'text-xs' : 'text-xs'}`}>
+                          {formatChatDate(chat.updatedAt || chat.createdAt)}
+                        </span>
+                      </>
+                    ) : (
+                      <MessageSquare className="w-5 h-5" />
+                    )}
+                  </button>
+                  
+                  {/* Delete button that appears on hover */}
+                  {isOpen && hoveredChatId === chat.id && currentChatId !== chat.id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteChat(chat.id);
+                      }}
+                      className="absolute top-1 right-1 p-1 rounded-md bg-red-500 hover:bg-red-600 text-white opacity-90 hover:opacity-100 transition-all duration-200"
+                      title="Delete chat"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   )}
-                </button>
+                </div>
               ))}
             </div>
           )}
