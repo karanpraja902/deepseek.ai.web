@@ -1,68 +1,46 @@
 import React from "react"
-import { MessageSquare, Plus, Settings, Moon, Sun } from "lucide-react"
-
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-  } from "./ui/sidebar"
+import Link from "next/link"
+import { MessageSquare, Plus, Settings } from "lucide-react"
 import { ThemeToggle } from "./ui/theme-toggle"
   
-  export function AppSidebar() {
-    return (
-      <Sidebar>
-        <SidebarHeader className="border-b p-4">
-          <h2 className="text-lg font-semibold">AI Chat Assistant</h2>
-        </SidebarHeader>
+export function AppSidebar() {
+  return (
+    <div className="flex h-full w-64 flex-col bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
+      <div className="border-b border-gray-200 dark:border-gray-700 p-4">
+        <h2 className="text-lg font-semibold">AI Chat Assistant</h2>
+      </div>
+      
+      <div className="flex-1 p-4 space-y-2">
+        <Link 
+          href="/" 
+          className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          <span>New Chat</span>
+        </Link>
         
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="/">
-                    <Plus className="h-4 w-4" />
-                    <span>New Chat</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="/chat">
-                    <MessageSquare className="h-4 w-4" />
-                    <span>Chat History</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-          
-          {/* Dark Mode Toggle Section */}
-          <SidebarGroup>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <ThemeToggle />
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-        </SidebarContent>
+        <Link 
+          href="/chat" 
+          className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        >
+          <MessageSquare className="h-4 w-4" />
+          <span>Chat History</span>
+        </Link>
         
-        <SidebarFooter className="border-t p-4">
-          <div className="flex items-center justify-between">
-            <SidebarMenuButton asChild>
-              <a href="/settings">
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
-              </a>
-            </SidebarMenuButton>
-          </div>
-        </SidebarFooter>
-      </Sidebar>
-    )
-  }
+        <div className="pt-4">
+          <ThemeToggle />
+        </div>
+      </div>
+      
+      <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+        <Link 
+          href="/settings" 
+          className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        >
+          <Settings className="h-4 w-4" />
+          <span>Settings</span>
+        </Link>
+      </div>
+    </div>
+  )
+}

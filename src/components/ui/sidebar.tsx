@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect } from 'react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   MessageSquare, 
   Plus, 
@@ -46,6 +47,7 @@ export default function Sidebar({
   userId,
   isUserInitialized,
 }: SidebarProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -64,7 +66,9 @@ export default function Sidebar({
           setRecentChats(response.data.chats || []);
         }
       } catch (error) {
-        console.error('Failed to load recent chats:', error);
+        console.warn('Failed to load recent chats:', error);
+        // Set empty array so UI doesn't show loading forever
+        setRecentChats([]);
       } finally {
         setIsLoadingChats(false);
       }
@@ -79,16 +83,22 @@ export default function Sidebar({
     try {
       const response = await ChatApiService.createChat(STATIC_USER_ID); 
       if (response.success && response.data.chat) {
-        const response=await ChatApiService.getUserChats(STATIC_USER_ID);
-        console.log("response.data.chats:", response.data.chats)
-        setRecentChats(response.data.chats || []);
-        let id=response.data.chat._id;
-        const newUrl = `/chat/${response.data.chat._id}`
-     window.history.replaceState({ path: newUrl }, '', newUrl);
-    setChatId(id);  
+        // Refresh the recent chats list
+        const updatedChatsResponse = await ChatApiService.getUserChats(STATIC_USER_ID);
+        console.log("updatedChatsResponse.data.chats:", updatedChatsResponse.data.chats);
+        setRecentChats(updatedChatsResponse.data.chats || []);
+        
+        // Navigate to the new chat
+        const newChatId = response.data.chat._id || response.data.chat.id;
+        const newUrl = `/chat/${newChatId}`;
+        window.history.replaceState({ path: newUrl }, '', newUrl);
+        setChatId(newChatId);
+        
+        toast.success('New chat created');
       }
     } catch (error) {
-      toast.error('Failed to create new chat'+error);
+      console.error('Failed to create new chat:', error);
+      toast.error('Failed to create new chat');
     }
   };
   const handleDeleteChat = async (chatIdToDelete: string) => {
@@ -111,17 +121,12 @@ export default function Sidebar({
       throw error; // Re-throw so the sidebar can handle the error state
     }
   };
-    const handleChatSelect =async (chatId: string) => {
+    const handleChatSelect = async (chatId: string) => {
     onChatSelect(chatId);
-    const response = await ChatApiService.getChat(chatId);
-    if (response.success) {
-      console.log("response.data.messages:", response.data.chat.messages);
-      // setRecentChats(response.data.chat.messages);
+    
+    if (isMobile || isTablet) {
+      onToggle(); // Close sidebar on mobile/tablet after chat selection
     }
-
-    // if (isMobile || isTablet) {
-    //   onToggle(); // Close sidebar on mobile/tablet after chat selection
-    // }
   };
 
   const getModelDisplayName = (model: string) => {
@@ -414,7 +419,7 @@ export default function Sidebar({
                     onClick={() => onChatSelect(chat.id)}
                     className={`w-full text-left p-2 rounded-md flex ${
                       currentChatId === chat.id 
-                        ? 'bg-blue-50 text-blue-600' 
+                        ? 'bg-gray-500 text-gray-100' 
                         : 'hover:bg-gray-500 hover:text-white'
                     } ${isOpen ? 'flex-col' : 'justify-center'}`}
                   >
@@ -482,7 +487,10 @@ export default function Sidebar({
                   <User className="w-4 h-4" />
                   Profile
                 </button>
-                <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-500 flex items-center gap-2">
+                <button 
+                  onClick={() => router.push('/settings')}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-500 flex items-center gap-2"
+                >
                   <Settings className="w-4 h-4" />
                   Settings
                 </button>

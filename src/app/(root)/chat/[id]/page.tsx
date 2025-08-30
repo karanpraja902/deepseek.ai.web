@@ -148,7 +148,7 @@ useEffect(() => {
         if (response.success && response.data.messages) {
           // Transform database messages to frontend format
           const transformedMessages = response.data.messages.map((msg: any, index: number) => ({
-            id: msg.parts[0]._id || `msg-${index}`,
+            id: msg._id || `msg-${index}`,
             role: msg.role,
             content: msg.content,
             parts: msg.parts || [{ type: 'text', text: msg.content }],
@@ -156,6 +156,7 @@ useEffect(() => {
             metadata: msg.metadata || {},
             createdAt: new Date(msg.timestamp || Date.now())
           }));
+          console.log("transformedMessages:", transformedMessages);
           setMessages(transformedMessages);
         }
       } catch (error) {
@@ -608,16 +609,6 @@ useEffect(() => {
             ));
             lastUpdateTime = now;
           }
-          
-                      // Background save every 500 characters or 2 seconds, but only if there's content
-            if ((chunkBuffer.length >= 500 || (now - lastUpdateTime >= 2000 && chunkBuffer.length > 0)) && accumulatedText.trim()) {
-              // Non-blocking background save using setTimeout for browser compatibility
-              setTimeout(() => {
-                ChatApiService.addMessage(chatId as string, 'assistant', accumulatedText)
-                  .catch(err => console.error('Background save failed:', err));
-              }, 0);
-              chunkBuffer = '';
-            }
         });
 
         // Check for empty assistant response after streaming completes
@@ -1178,23 +1169,39 @@ useEffect(() => {
   };
 
 
-  const handleChatSelect =async (selectedChatId: string) => {
+  const handleChatSelect = async (selectedChatId: string) => {
     console.log("handleChatSelect selectedChatId:", selectedChatId);
- const newUrl = `/chat/${selectedChatId}`
- console.log("handleChatSelect newUrl:", newUrl);
-    if (selectedChatId !== chatId) {
-    window.history.replaceState({ path: newUrl }, '', newUrl);
-    setChatId(selectedChatId);
-    }
-    const response = await ChatApiService.getChat(selectedChatId);
-    console.log("handleChatSelect response:", response);
-    if (response.success) {
-      
-      console.log("response.data.messages:", response.data.chat.messages);
-      
-      setMessages(response.data.chat.messages);
-    }
+    const newUrl = `/chat/${selectedChatId}`;
+    console.log("handleChatSelect newUrl:", newUrl);
     
+    if (selectedChatId !== chatId) {
+      window.history.replaceState({ path: newUrl }, '', newUrl);
+      setChatId(selectedChatId);
+      
+      try {
+        // Clear current messages first
+        setMessages([]);
+        setError(null);
+        setStatus('idle');
+        
+        // Load the selected chat's messages
+        const response = await ChatApiService.getChat(selectedChatId);
+        console.log("handleChatSelect response:", response);
+        
+        if (response.success && response.data.chat && response.data.chat.messages && response.data.chat.messages.length > 0) {
+          // Transform messages to match UI expectations
+          const uiMessages = transformMessagesToUI(response.data.chat.messages);
+          console.log("Transformed uiMessages:", uiMessages);
+          setMessages(uiMessages);
+        } else {
+          setMessages([]);
+        }
+      } catch (error) {
+        console.error('Failed to load chat messages:', error);
+        setError(new Error('Failed to load chat messages'));
+        setMessages([]);
+      }
+    }
   };
 
   const handleModelChange = (newModel: string) => {
@@ -1218,7 +1225,9 @@ useEffect(() => {
           setIsUserInitialized(true);
         }
       } catch (error) {
-        console.error('Failed to initialize user:', error);
+        console.warn('Failed to initialize user (non-critical):', error);
+        // Even if user initialization fails, we can still use the chat
+        setIsUserInitialized(true);
       }
     };
 
@@ -1229,46 +1238,90 @@ useEffect(() => {
     const loadExistingMessages = async () => {
       try {
         console.log('chatId:', chatId);
-        if (!chatId || chatId === 'undefined') {
-          console.error('Invalid chatId for loadExistingMessages:', chatId);
+        if (!chatId || chatId === 'undefined' || chatId === 'null') {
+          console.warn('Invalid chatId for loadExistingMessages:', chatId);
+          setIsLoading(false);
+          setMessages([]);
           return;
         }
+        
         // Use the API service instead of direct fetch
         const response = await ChatApiService.getChat(chatId);
+        console.log('Raw API response:', response);
+        
         const existingChat = response?.data?.chat;
-
         console.log('existingChat:', existingChat);
-
-        if (existingChat && existingChat.messages.length > 0) {
-          const uiMessages = existingChat.messages.map((msg: any) => {
-            return {
-              id: msg.parts[0]._id,
-              role: msg.role,
-              parts: msg.parts || [{ type: 'text', text: msg.content }],
-              content: msg.content,
-              createdAt: msg.timestamp,
-              files: msg.files || []
-            };
-          });
-          console.log("uiMessages:", uiMessages);
-          setMessages(uiMessages);
+        
+        // Additional safety check for the response structure
+        if (!response || !response.success || !response.data) {
+          console.warn('Invalid API response structure:', response);
+          setMessages([]);
+          setIsLoading(false);
+          return;
         }
 
+        if (existingChat && existingChat.messages && existingChat.messages.length > 0) {
+          const uiMessages = transformMessagesToUI(existingChat.messages);
+          console.log("uiMessages:", uiMessages);
+          setMessages(uiMessages);
+        } else {
+          setMessages([]);
+        }
+
+        // Load user profile with memory context (non-blocking)
+        if (isUserInitialized) {
+          // Load user profile in background without blocking the chat loading
+          AuthApiService.getUserWithMemory(STATIC_USER_ID)
+            .then((userResponse) => {
+              console.log("userResponse:", userResponse);
+              if (userResponse.success) {
+                setUserProfile(userResponse.memory);
+              }
+            })
+            .catch((error) => {
+              console.warn('Failed to load user profile (non-critical):', error);
+              // This is non-critical, so we don't block the UI
+            });
+        }
         
       } catch (error) {
         console.error('Failed to load existing messages:', error);
+        setError(new Error('Failed to load chat'));
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (isUserInitialized) {
+    if (isUserInitialized && chatId) {
       loadExistingMessages();
+    } else if (!chatId) {
+      setIsLoading(false);
     }
   }, [chatId, setMessages, isUserInitialized]);
 
 
   console.log("Streamedmessages:", messages)
+  // Helper function to safely transform messages from API to UI format
+  const transformMessagesToUI = (messages: any[]): any[] => {
+    if (!Array.isArray(messages)) {
+      console.warn('transformMessagesToUI: messages is not an array:', messages);
+      return [];
+    }
+    
+    return messages.map((msg: any, index: number) => {
+      // Defensive programming to handle undefined/null message properties
+      const safeMsg = msg || {};
+      return {
+        id: safeMsg._id || safeMsg.id || `msg-${index}`,
+        role: safeMsg.role || 'user',
+        parts: safeMsg.parts || [{ type: 'text', text: safeMsg.content || '' }],
+        content: safeMsg.content || '',
+        createdAt: safeMsg.timestamp || safeMsg.createdAt || new Date(),
+        files: safeMsg.files || []
+      };
+    });
+  };
+
   // Helper function to generate conversation title
   const getConversationTitle = (messages: any[]) => {
     if (messages.length === 0) return '';
@@ -1347,7 +1400,7 @@ useEffect(() => {
        />
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-gray-700/80">
+      <div className="flex-1 flex flex-col overflow-hidden dark:bg-gray-950">
         {/* Mobile Header with Menu Button - Only for mobile screens */}
         <div className="lg:hidden bg-gray-800/90 backdrop-blur-sm border-b border-gray-700 p-4">
           <div className="flex items-center justify-between">
