@@ -22,7 +22,8 @@ import {
 import { toast } from 'react-hot-toast';
 import { useResponsive } from '../../hooks/use-mobile';
 import { ChatApiService } from '@/services/api';
-const STATIC_USER_ID = 'static_user_karanao';
+import { useSubscription } from '../../contexts/SubscriptionContext';
+const STATIC_USER_ID = 'dynamic_user_sharan';
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
@@ -48,6 +49,14 @@ export default function Sidebar({
   isUserInitialized,
 }: SidebarProps) {
   const router = useRouter();
+  const { subscription, isLoading } = useSubscription();
+  
+  // Get current plan display name
+  const getCurrentPlanName = () => {
+    if (isLoading) return 'Loading...';
+    if (!subscription?.plan) return 'Free Plan';
+    return subscription.plan;
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -295,7 +304,7 @@ export default function Sidebar({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate text-sm">{userId}</p>
-                  <p className="text-gray-400 truncate text-xs">Free Plan</p>
+                  <p className="text-gray-400 truncate text-xs">{getCurrentPlanName()}</p>
                 </div>
               </button>
 
@@ -303,7 +312,7 @@ export default function Sidebar({
                 <div className="absolute bottom-full left-0 mb-1 w-48 bg-gray-800 rounded-md shadow-lg border border-gray-600 py-1 z-10">
                   <div className="px-4 py-2 border-b border-gray-600">
                     <p className="text-sm font-medium text-gray-300">{userId}</p>
-                    <p className="text-xs text-gray-400">Free Plan</p>
+                    <p className="text-xs text-gray-400">{getCurrentPlanName()}</p>
                   </div>
                   <div className="py-1">
                     <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center gap-2 text-gray-300">
@@ -471,7 +480,7 @@ export default function Sidebar({
             {isOpen && (
               <div className="flex-1 min-w-0 hover:text-gray-100">
                 <p className={`font-medium truncate ${isTablet ? 'text-xs' : 'text-sm'}`}>{userId}</p>
-                <p className={`text-gray-100 truncate  ${isTablet ? 'text-xs' : 'text-xs'}`}>Free Plan</p>
+                <p className={`text-gray-100 truncate  ${isTablet ? 'text-xs' : 'text-xs'}`}>{getCurrentPlanName()}</p>
               </div>
             )}
           </button>
@@ -480,7 +489,7 @@ export default function Sidebar({
             <div className="absolute bottom-full left-0 mb-1 w-48 bg-gray-800 rounded-md shadow-lg border border-gray-500 py-1 z-10">
               <div className="px-4 py-2 border-b border-gray-500">
                 <p className="text-sm font-medium">{userId}</p>
-                <p className="text-xs text-gray-500">Free Plan</p>
+                <p className="text-xs text-gray-500">{getCurrentPlanName()}</p>
               </div>
               <div className="py-1">
                 <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-500 flex items-center gap-2">

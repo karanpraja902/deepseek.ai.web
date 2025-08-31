@@ -21,6 +21,7 @@
     "@openrouter/ai-sdk-provider": "^1.1.2",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/themes": "^3.2.1",
+    "@stripe/stripe-js": "^7.9.0",
     "@types/react-syntax-highlighter": "^15.5.13",
     "ai": "^5.0.15",
     "axios": "^1.11.0",
@@ -46,6 +47,7 @@
     "react-spinners": "^0.17.0",
     "react-syntax-highlighter": "^15.6.6",
     "remark-gfm": "^4.0.1",
+    "stripe": "^18.5.0",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.25.76"

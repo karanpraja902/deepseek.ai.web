@@ -13,9 +13,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Sidebar from '../../../../components/ui/sidebar';
 import Header from '../../../../components/ui/header';
+import { SubscriptionProvider } from '../../../../contexts/SubscriptionContext';
 
 // Static user ID for the demo
-const STATIC_USER_ID = 'static_user_karanao';
+const STATIC_USER_ID = 'dynamic_user_sharan';
 // 
 // Helper function to format base64 image data
 
@@ -1387,17 +1388,19 @@ useEffect(() => {
   return (
     <div className="flex h-screen bg-gray-100">
              {/* Sidebar - Always rendered, but shown differently based on screen size */}
-        <Sidebar
-        setChatId={setChatId}
-         isOpen={sidebarOpen}
-         onToggle={toggleSidebar}
-         isUserInitialized={isUserInitialized}
-         currentChatId={chatId as string}
-         onChatSelect={handleChatSelect}
-         onModelChange={handleModelChange}
-         currentModel={model}
-         userId={STATIC_USER_ID}
-       />
+        <SubscriptionProvider userId={STATIC_USER_ID}>
+          <Sidebar
+          setChatId={setChatId}
+           isOpen={sidebarOpen}
+           onToggle={toggleSidebar}
+           isUserInitialized={isUserInitialized}
+           currentChatId={chatId as string}
+           onChatSelect={handleChatSelect}
+           onModelChange={handleModelChange}
+           currentModel={model}
+           userId={STATIC_USER_ID}
+         />
+        </SubscriptionProvider>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden dark:bg-gray-950">
@@ -2056,19 +2059,21 @@ useEffect(() => {
  </div>} 
         {/* Input Form - Always fixed at bottom */}
         
-        <ChatInput
-          input={input}
-          setInput={setInput}
-          files={files}
-          setUploadedFiles={setUploadedFiles}
-          sendMessage={sendMessageWithUser}
-          status={status}
-          onStop={stop}
-          chatId={chatId as string}
-          messages={messages}
-          setModel={setModel}
-          model={model}
-        />
+        <SubscriptionProvider userId={STATIC_USER_ID}>
+          <ChatInput
+            input={input}
+            setInput={setInput}
+            files={files}
+            setUploadedFiles={setUploadedFiles}
+            sendMessage={sendMessageWithUser}
+            status={status}
+            onStop={stop}
+            chatId={chatId as string}
+            messages={messages}
+            setModel={setModel}
+            model={model}
+          />
+        </SubscriptionProvider>
         </div>
 
       </div>

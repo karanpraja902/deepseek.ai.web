@@ -7,6 +7,8 @@ import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { Paperclip, X, StopCircle, Loader2, Globe, Image as ImageIcon, Code2, FileText, Table, CloudSun, FlaskConical, Wrench, SlidersHorizontal, Settings, Search, Palette, Square } from 'lucide-react';
 import DictationButton from '../ui/DictationButton';
 import { LuCpu } from "react-icons/lu"
+import { useSubscription } from '../../contexts/SubscriptionContext';
+import { FaLock, FaLockOpen } from 'react-icons/fa';
 
 interface ChatInputProps {
   input: string;
@@ -45,6 +47,36 @@ export default function ChatInput({
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(true);
 
+  // Subscription context
+  const { hasAccess, subscription, isLoading } = useSubscription();
+  
+  // Local state for access control
+  const [hasAdvancedToolsAccess, setHasAdvancedToolsAccess] = useState(false);
+  const [hasOpenRouterAccess, setHasOpenRouterAccess] = useState(false);
+  
+  // Update access states when subscription context changes
+  useEffect(() => {
+    console.log('🔄 Updating access states:', { isLoading, subscription });
+    
+    if (!isLoading) {
+      const advancedAccess = hasAccess('advanced_tools');
+      const openRouterAccess = hasAccess('openrouter');
+      
+      console.log('🔄 Setting access states:', { 
+        advancedAccess, 
+        openRouterAccess,
+        subscriptionPlan: subscription?.plan 
+      });
+      
+      setHasAdvancedToolsAccess(advancedAccess);
+      setHasOpenRouterAccess(openRouterAccess);
+    } else {
+      // Reset to false while loading
+      console.log('🔄 Resetting access states (loading)');
+      setHasAdvancedToolsAccess(false);
+      setHasOpenRouterAccess(false);
+    }
+  }, [isLoading, subscription, hasAccess]);
   
   const [error, setError] = useState<string>('')
   const [showErrorToast, setShowErrorToast] = useState(false)
@@ -447,6 +479,40 @@ export default function ChatInput({
 
   const handleToolSelect = useCallback((key: string) => {
     console.log("handleToolSelect")
+    console.log("hasAdvancedToolsAccess:", hasAdvancedToolsAccess)
+    console.log("isLoading:", isLoading)
+    
+    // Prevent any tool selection while subscription data is loading
+    if (isLoading) {
+      console.log('🔒 Tool selection blocked: Still loading subscription data');
+      setError('Please wait while we load your subscription details...');
+      setShowErrorToast(true);
+      setShowTools(false);
+      return;
+    }
+    
+    // Check for restricted tools using local state
+    if (key === 'research' && !hasAdvancedToolsAccess) {
+      setError('Deep Research requires Pro+ or Ultra subscription. Please upgrade to access this feature.');
+      setShowErrorToast(true);
+      setShowTools(false);
+      return;
+    }
+    
+    if (key === 'generate-image' && !hasAdvancedToolsAccess) {
+      setError('Image Generation requires Pro+ or Ultra subscription. Please upgrade to access this feature.');
+      setShowErrorToast(true);
+      setShowTools(false);
+      return;
+    }
+    
+    if (key === 'doc' && !hasAdvancedToolsAccess) {
+      setError('Document Analysis requires Pro+ or Ultra subscription. Please upgrade to access this feature.');
+      setShowErrorToast(true);
+      setShowTools(false);
+      return;
+    }
+    
     if (key === 'web') {
       if (!documentMode && !imageGenerationMode && !weatherMode) { // Only allow web search if not in other modes
         setWebSearchEnabled(!webSearchEnabled);
@@ -483,7 +549,7 @@ export default function ChatInput({
     }
 
     if (key === 'doc') {
-      if(!preFile.length && documentMode) {
+      if(!preFile.length && documentMode&&!webSearchEnabled && !imageGenerationMode) {
         console.log("documentMode:", documentMode);
         setDocumentMode(false);
         return;
@@ -502,7 +568,7 @@ export default function ChatInput({
       setInput(input ? input + '\n' + p : p);
     }
     setShowTools(false);
-  }, [documentMode, webSearchEnabled, imageGenerationMode, weatherMode, preFile.length, toolPrompts, input, setInput]);
+  }, [documentMode, webSearchEnabled, imageGenerationMode, weatherMode, preFile.length, toolPrompts, input, setInput, hasAdvancedToolsAccess, isLoading]);
 
   const handleModelSelect = (modelValue: string) => {
     console.log('🔄 Model selection:', { 
@@ -510,6 +576,27 @@ export default function ChatInput({
       new: modelValue, 
       available: availableModels.map(m => m.key) 
     });
+    console.log("hasOpenRouterAccess:", hasOpenRouterAccess)
+    console.log("isLoading:", isLoading)
+    
+    // Prevent model selection while subscription data is loading
+    if (isLoading) {
+      console.log('🔒 Model selection blocked: Still loading subscription data');
+      setError('Please wait while we load your subscription details...');
+      setShowErrorToast(true);
+      setShowModelMenu(false);
+      return;
+    }
+    
+    // Check if the selected model is restricted using local state
+    const selectedModel = modelOptions.find(m => m.value === modelValue);
+    if (selectedModel?.provider === 'openrouter' && !hasOpenRouterAccess) {
+      setError('OpenRouter models require Pro+ or Ultra subscription. Please upgrade to access these models.');
+      setShowErrorToast(true);
+      setShowModelMenu(false);
+      return;
+    }
+    
     setModel(modelValue);
     setShowModelMenu(false);
   };
@@ -558,6 +645,38 @@ export default function ChatInput({
 
   return (
     <div className={`sticky bottom-0 z-10 pb-1 sm:pb-2 md:pb-4 lg:pb-6 px-4 sm:px-6 md:px-12 lg:px-20 xl:px-30 2xl:px-40 ${messages.length > 0 ? 'bg-gray-700/80' : 'bg-transparent'}`}>
+      {/* Subscription Upgrade Banner */}
+      {subscription && !hasAccess('openrouter') && (
+        <div className="mx-1 sm:mx-2 md:mx-4 mb-1.5 sm:mb-2 md:mb-3 p-1.5 sm:p-2 md:p-3 rounded-lg text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 border border-blue-400 shadow-md bg-blue-50 dark:bg-blue-950">
+          <div className="flex-1">
+            <span className="font-medium text-blue-800 dark:text-blue-200">
+              Upgrade to Pro+ or Ultra
+            </span>
+            <span className="ml-1 sm:ml-2 text-blue-700 dark:text-blue-300">
+              to access OpenRouter models and advanced tools
+            </span>
+          </div>
+          <button 
+            onClick={() => window.open('/settings', '_blank')}
+            className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition-colors"
+          >
+            Upgrade
+          </button>
+        </div>
+      )}
+      
+      {/* Debug Subscription Info */}
+      {/* {process.env.NODE_ENV === 'development' && (
+        <div className="mx-1 sm:mx-2 md:mx-4 mb-1.5 sm:mb-2 md:mb-3 p-1.5 sm:p-2 md:p-3 rounded-lg text-xs sm:text-sm bg-gray-800 text-gray-300">
+          <div>🔍 Debug: Subscription Status</div>
+          <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
+          <div>Plan: {subscription?.plan || 'None'}</div>
+          <div>Status: {subscription?.status || 'None'}</div>
+          <div>Has Advanced Tools: {hasAccess('advanced_tools') ? 'Yes' : 'No'}</div>
+          <div>Has OpenRouter: {hasAccess('openrouter') ? 'Yes' : 'No'}</div>
+        </div>
+      )} */}
+
       {/* Context Warning */}
       {contextStatus.status !== 'ok' && (
         <div className={`mx-1 sm:mx-2 md:mx-4 mb-1.5 sm:mb-2 md:mb-3 p-1.5 sm:p-2 md:p-3 rounded-lg text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 border border-gray-400 shadow-md ${
@@ -590,6 +709,15 @@ export default function ChatInput({
               <div className="ml-1.5 sm:ml-2 md:ml-3 flex-1">
                 <h3 className="text-xs sm:text-sm font-medium text-red-800">Error</h3>
                 <div className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-red-700">{error}</div>
+                {/* Add upgrade button for subscription-related errors */}
+                {(error.includes('Pro+') || error.includes('Ultra') || error.includes('subscription')) && (
+                  <button
+                    onClick={() => window.open('/settings', '_blank')}
+                    className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded transition-colors"
+                  >
+                    Upgrade Subscription
+                  </button>
+                )}
               </div>
               <div className="ml-1.5 sm:ml-2 md:ml-4 flex-shrink-0">
                 <button
@@ -719,7 +847,7 @@ export default function ChatInput({
                 </div>
               </button>
               {showModelMenu && (
-                <div className="absolute bottom-full left-0 mb-2 w-48 sm:w-56 md:w-64 lg:w-80 bg-gray-600/80 rounded-xl border border-gray-200 shadow-lg p-1.5 sm:p-2 z-20">
+                <div className="absolute  bottom-full left-0 mb-2 w-48 sm:w-56 md:w-64 lg:w-80 bg-gray-600/80 rounded-xl border border-gray-200 shadow-lg p-1.5 sm:p-2 z-20">
                   <div className="p-2 text-xs text-gray-100">Current: {selectedModelLabel}</div>
                   {isLoadingModels ? (
                     <div className="flex items-center justify-center py-4">
@@ -728,35 +856,51 @@ export default function ChatInput({
                     </div>
                   ) : (
                     <div className="flex flex-col">
-                      {modelOptions.map(opt => (
-                        <button
-                          key={opt.value}
-                          onClick={() => opt.isAvailable ? handleModelSelect(opt.value) : null}
-                          disabled={!opt.isAvailable}
-                          className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                            !opt.isAvailable 
-                              ? 'opacity-50 cursor-not-allowed text-gray-900' 
-                              : model === opt.value 
-                              ? 'bg-gray-500 text-white' 
-                              : 'hover:bg-gray-500 text-gray-100'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <LuCpu className="w-4 h-4" />
-                            <div className="text-left">
-                              <div className="text-sm font-medium">{opt.label}</div>
-                              <div className="text-xs text-gray-100">
-                                {opt.provider === 'google' ? 'Google AI' : 'OpenRouter'}
-                                {opt.isDefault && ' (Default)'}
-                                {!opt.isAvailable && ' (Unavailable)'}
+                      {modelOptions.map(opt => {
+                        const isOpenRouterModel = opt.provider === 'openrouter';
+                        const isRestricted = isOpenRouterModel && !hasOpenRouterAccess;
+                        
+                        return (
+                          <button
+                            key={opt.value}
+                            onClick={() => !isLoading && opt.isAvailable && !isRestricted ? handleModelSelect(opt.value) : null}
+                            disabled={!opt.isAvailable || isLoading || isRestricted}
+                            className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                              !opt.isAvailable || isLoading || isRestricted
+                                ? 'opacity-100 cursor-not-allowed text-blue-300' 
+                                : model === opt.value 
+                                ? 'bg-gray-500 text-white' 
+                                : 'hover:bg-gray-500 text-gray-100'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <LuCpu className="w-4 h-4" />
+                              <div className="text-left">
+                                <div className="text-sm font-medium flex items-center justify-between    ">
+                                  {opt.label}
+                                  
+                                </div>
+                                <div className="text-xs text-gray-100">
+                                  {opt.provider === 'google' ? 'Google AI' : 'OpenRouter'}
+                                  {opt.isDefault && ' (Default)'}
+                                  {isRestricted && ' (Pro+ or Ultra required)'}
+                                  {!opt.isAvailable && !isRestricted && ' (Unavailable)'}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          {model === opt.value && opt.isAvailable && (
-                            <span className="text-gray-800 text-xs bg-blue-200 px-2 py-1 rounded">Selected</span>
-                          )}
-                        </button>
-                      ))}
+                            {model === opt.value && opt.isAvailable && !isRestricted && (
+                              <span className="text-gray-800 text-xs bg-blue-200 px-2 py-1 rounded">Selected</span>
+                            )}
+                            {isLoading && isOpenRouterModel ? (
+                              <div className="w-3 h-3 animate-spin rounded-full border border-gray-400 border-t-transparent" title="Loading subscription..." />
+                            ) : isRestricted ? (
+                                    <FaLock className="w-3 h-3 text-yellow-400" title="Requires Pro+ or Ultra subscription" />
+                                  ) : isOpenRouterModel ? (
+                                    <FaLockOpen className="w-3 h-3 text-green-400" title="Available with your subscription" />
+                                  ) : null}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -792,87 +936,133 @@ export default function ChatInput({
                   
                   {showTools && (
                     <div className="absolute bottom-full right-0 mb-2 w-36 sm:w-40 md:w-48 lg:w-64 bg-gray-600/80 rounded-xl border border-gray-200 shadow-lg p-1.5 sm:p-2 z-20">
-                                    <div className="flex flex-col">
-                      <button 
-                        onClick={() => handleToolSelect('web')} 
-                        disabled={documentMode || weatherMode}
-                        className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors  ${
-                          documentMode || weatherMode
-                            ? 'opacity-50 cursor-not-allowed text-gray-400'
-                            : webSearchEnabled 
-                            ? 'bg-cyan-200 text-cyan-700 hover:bg-cyan-200'
-                              : 'hover:bg-cyan-100 hover:text-gray-900'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <Globe className="w-4 h-4" />
-                          Web Search
-                          {webSearchEnabled && !documentMode && !weatherMode && <span className="text-xs font-medium">(ON)</span>}
-                        </span>
-                      </button>
-                     
-                        
-                        <button 
-                          onClick={() => handleToolSelect('doc')} 
-                          className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                            documentMode 
-                              ? 'bg-gray-400/80 text-gray-100 hover:bg-gray-500/80' 
-                            : 'hover:bg-blue-100 hover:text-gray-900'
-                          }`}
-                        >
-                          <span className="flex items-center gap-2">
-                            <FileText className="w-4 h-4" />
-                            Document
-                            {documentMode && <span className="text-xs font-medium">(ON)</span>}
-                          </span>
-                        </button>
+                      <div className="flex flex-col">
+                        {/* Define isRestricted for each tool */}
+                        {(() => {
+                          const isDocRestricted = !hasAdvancedToolsAccess;
+                          const isImageRestricted = !hasAdvancedToolsAccess;
+                          const isResearchRestricted = !hasAdvancedToolsAccess;
+                          
+                          return (
+                            <>
+                              <button 
+                                onClick={() => handleToolSelect('web')} 
+                                disabled={documentMode || weatherMode}
+                                className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors  ${
+                                  documentMode || weatherMode
+                                    ? 'opacity-50 cursor-not-allowed text-gray-400'
+                                    : webSearchEnabled 
+                                    ? 'bg-cyan-200 text-cyan-700 hover:bg-cyan-200'
+                                      : 'hover:bg-cyan-100 hover:text-gray-900'
+                                }`}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <Globe className="w-4 h-4" />
+                                  Web Search
+                                  {webSearchEnabled && !documentMode && !weatherMode && <span className="text-xs font-medium">(ON)</span>}
+                                </span>
+                              </button>
+                             
+                              <button 
+                                  onClick={() => handleToolSelect('weather')} 
+                                  disabled={documentMode || imageGenerationMode || webSearchEnabled}
+                                  className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                                    documentMode || imageGenerationMode || webSearchEnabled
+                                      ? 'opacity-50 cursor-not-allowed text-gray-400' 
+                                      : weatherMode
+                                      ? 'bg-cyan-200 text-cyan-700 hover:bg-cyan-200'
+                                      : 'hover:bg-cyan-100 hover:text-gray-900'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <CloudSun className="w-4 h-4" />
+                                    Weather
+                                    {weatherMode && <span className="text-xs font-medium">(ON)</span>}
+                                  </span>
+                                </button>
+                                
+                                                              <button 
+                                onClick={() => !isLoading ? handleToolSelect('doc') : null} 
+                                disabled={imageGenerationMode || webSearchEnabled || weatherMode || isLoading || isDocRestricted}
+                                  className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                                    imageGenerationMode || webSearchEnabled || weatherMode || isLoading || isDocRestricted
+                                      ? 'opacity-50 cursor-not-allowed text-gray-400 ' 
+                                      : documentMode
+                                      ? 'bg-gray-400/80 text-gray-100 hover:bg-gray-500/80'
+                                      : 'hover:bg-blue-100 hover:text-gray-900'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4" />
+                                    Document
+                                    {documentMode && <span className="text-xs font-medium">(ON)</span>}
+                                  </span>
+                                  {isLoading ? (
+                                    <div className="w-3 h-3 animate-spin rounded-full border border-gray-400 border-t-transparent" title="Loading subscription..." />
+                                  ) : isDocRestricted ? (
+                                    <FaLock className="w-3 h-3 text-yellow-400" title="Requires Pro+ or Ultra subscription" />
+                                  ) : (
+                                    <FaLockOpen className="w-3 h-3 text-green-400" title="Available with your subscription" />
+                                  )}
+                                </button>
+                                
+                                <button 
+                                  onClick={() => !isLoading ? handleToolSelect('generate-image') : null} 
+                                  disabled={documentMode || webSearchEnabled || weatherMode || isLoading || isImageRestricted}
+                                  className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                                    documentMode || webSearchEnabled || weatherMode || isLoading || isImageRestricted
+                                      ? 'opacity-50 cursor-not-allowed text-gray-400'
+                                      : imageGenerationMode 
+                                      ? 'bg-purple-200 text-purple-700 hover:bg-purple-200' 
+                                      : 'hover:bg-purple-100 hover:text-gray-900'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <Palette className="w-4 h-4" />
+                                    Generate Image
+                                    {imageGenerationMode && <span className="text-xs font-medium">(ON)</span>}
+                                  </span>
+                                  {isLoading ? (
+                                    <div className="w-3 h-3 animate-spin rounded-full border border-gray-400 border-t-transparent" title="Loading subscription..." />
+                                  ) : isImageRestricted ? (
+                                    <FaLock className="w-3 h-3 text-yellow-400" title="Requires Pro+ or Ultra subscription" />
+                                  ) : (
+                                    <FaLockOpen className="w-3 h-3 text-green-400" title="Available with your subscription" />
+                                  )}
+                                </button>
+                                
+                                <button 
+                                  onClick={() => !isLoading ? handleToolSelect('research') : null} 
+                                  disabled={documentMode || imageGenerationMode || weatherMode || isLoading || isResearchRestricted}
+                                  className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                                    documentMode || imageGenerationMode || weatherMode || isLoading || isResearchRestricted
+                                      ? 'opacity-50 cursor-not-allowed text-gray-400' 
+                                      : 'hover:bg-blue-100 hover:text-gray-900'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <FlaskConical className="w-4 h-4" />
+                                    Deep Research
+                                  </span>
+                                  {isLoading ? (
+                                    <div className="w-3 h-3 animate-spin rounded-full border border-gray-400 border-t-transparent" title="Loading subscription..." />
+                                  ) : isResearchRestricted ? (
+                                      <FaLock className="w-3 h-3 text-yellow-400" title="Requires Pro+ or Ultra subscription" />
+                                    ) : (
+                                      <FaLockOpen className="w-3 h-3 text-green-400" title="Available with your subscription" />
+                                    )}
+                                </button>
+                            </>
+                          );
+                        })()}
+                      
 
-                        <button 
-                          onClick={() => handleToolSelect('generate-image')} 
-                          disabled={documentMode || webSearchEnabled || weatherMode}
-                          className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                            documentMode || webSearchEnabled || weatherMode
-                              ? 'opacity-50 cursor-not-allowed text-gray-400'
-                              : imageGenerationMode 
-                              ? 'bg-purple-200 text-purple-700 hover:bg-purple-200' 
-                              : 'hover:bg-purple-100 hover:text-gray-900'
-                          }`}
-                        >
-                          <span className="flex items-center gap-2">
-                            <Palette className="w-4 h-4" />
-                            Generate Image
-                            {imageGenerationMode && <span className="text-xs font-medium">(ON)</span>}
-                          </span>
-                        </button>
+                      
+
+
                      
-                        <button 
-                          onClick={() => handleToolSelect('weather')} 
-                          disabled={documentMode || imageGenerationMode || webSearchEnabled}
-                          className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                            documentMode || imageGenerationMode || webSearchEnabled
-                              ? 'opacity-50 cursor-not-allowed text-gray-400' 
-                              : weatherMode
-                              ? 'bg-cyan-200 text-cyan-700 hover:bg-cyan-200'
-                              : 'hover:bg-cyan-100 hover:text-gray-900'
-                          }`}
-                        >
-                          <span className="flex items-center gap-2">
-                            <CloudSun className="w-4 h-4" />
-                            Weather
-                            {weatherMode && <span className="text-xs font-medium">(ON)</span>}
-                          </span>
-                        </button>
-                        <button 
-                          onClick={() => handleToolSelect('research')} 
-                          disabled={documentMode || imageGenerationMode || weatherMode}
-                          className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
-                            documentMode || imageGenerationMode || weatherMode
-                              ? 'opacity-50 cursor-not-allowed text-gray-400' 
-                              : 'hover:bg-blue-100 hover:text-gray-900'
-                          }`}
-                        >
-                          <span className="flex items-center gap-2"><FlaskConical className="w-4 h-4" />Deep Research</span>
-                        </button>
+                  
+
                       </div>
                     </div>
                   )}

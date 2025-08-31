@@ -42,6 +42,34 @@ export class UserApiService {
     }
   }
 
+  static async updateUserSubscription(userId: string, subscriptionData: {
+    plan: string;
+    status: string;
+    subscribedAt?: Date;
+    currentPeriodEnd?: Date;
+    trialEnd?: Date;
+  }) {
+    try {
+      console.log('APIpdateUserSubscription', userId, subscriptionData);
+      const response = await fetch(`${API_BASE_URL}/user/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ subscription: subscriptionData }),
+      });
+console.log('APIUpdateUserSubscriptionresponse', response);
+      if (!response.ok) {
+        throw new Error('Failed to update user subscription');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Update user subscription error:', error);
+      throw error;
+    }
+  }
+
   static async getUserStats(userId: string) {
     try {
       const response = await fetch(`${API_BASE_URL}/user/${userId}/stats`, {
