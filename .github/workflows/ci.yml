@@ -2,7 +2,7 @@ name: Client CI
 
 on:
   push:
-    branches: [master, develop ]
+    branches: [ master, develop ]
     paths:
       - 'src/**'
       - 'package.json'
