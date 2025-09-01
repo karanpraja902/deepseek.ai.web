@@ -16,7 +16,7 @@ A modern, intelligent AI chat application built with Next.js 15, React 19, and T
 - Real-time typing indicators and responses
 
 ### 📄 **Document Analysis**
-- PDF upload and analysis capabilities
+- PDF upload and analysis capability
 - AI-powered document insights and summaries
 - Text extraction and processing
 - File management with Cloudinary integration
