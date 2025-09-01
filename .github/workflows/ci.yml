@@ -3,24 +3,10 @@ name: Client CI
 on:
   push:
     branches: [ main, develop ]
-    paths:
-      - 'src/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'tsconfig.json'
-      - 'tailwind.config.js'
-      - 'next.config.ts'
-      - '.eslintrc.json'
+
   pull_request:
     branches: [ main, develop ]
-    paths:
-      - 'src/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'tsconfig.json'
-      - 'tailwind.config.js'
-      - 'next.config.ts'
-      - '.eslintrc.json'
+
 
 jobs:
   test:
