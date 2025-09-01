@@ -254,9 +254,9 @@ The application uses a modern component architecture:
 ## 🚀 Deployment
 
 ### **Vercel (Recommended)**
-
+ 
 1. **Connect to Vercel**
-   ```bash
+   ```bash command
    npm install -g vercel
    vercel
    ```
