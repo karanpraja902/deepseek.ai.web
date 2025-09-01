@@ -3,12 +3,12 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Check, Crown, Zap, Star, Settings, User, Bell, Shield, CreditCard, ArrowLeft, Loader2, Mail, Calendar, Clock } from 'lucide-react';
-import { AppSidebar } from '../../../components/app-sidebar';
-import { StripeService } from '../../../services/api/stripe';
-import { UserApiService } from '../../../services/api/user';
+import { AppSidebar } from '@/components/app-sidebar';
+import { StripeService } from '@/services/api/stripe';
+import { UserApiService } from '@/services/api/user';
 import { toast } from 'react-hot-toast';
-import { useAuth } from '../../../contexts/AuthContext';
-import { AuthGuard } from '../../../components/auth/AuthGuard';
+import { useAuth } from '@/contexts/AuthContext';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 
 interface UserProfile {
   id: string;

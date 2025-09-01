@@ -20,10 +20,10 @@ import {
   X
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { useResponsive } from '../../hooks/use-mobile';
+import { useResponsive } from '@/hooks/use-mobile';
 import { ChatApiService } from '@/services/api';
-import { useSubscription } from '../../contexts/SubscriptionContext';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
   isOpen: boolean;

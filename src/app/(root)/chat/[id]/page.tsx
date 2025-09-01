@@ -2,20 +2,20 @@
 import React from 'react';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import ChatInput from '../../../../components/chat/ChatInput';
-import { AiApiService, AuthApiService, ChatApiService } from '../../../../services/api';
-import Weather from '../../../../components/weather/Weather';
-import type { UploadedClientFile } from '../../../../services/api/cloudinary';
-import { uploadFilesClient } from '../../../../services/api/cloudinary';
+import ChatInput from '@/components/chat/ChatInput';
+import { AiApiService, AuthApiService, ChatApiService } from '@/services/api';
+import Weather from '@/components/weather/Weather';
+import type { UploadedClientFile } from '@/services/api/cloudinary';
+import { uploadFilesClient } from '@/services/api/cloudinary';
 import { toast } from 'react-hot-toast';
 import { Loader2, RefreshCw, Copy, Check, Edit, X, FileText, Download, Eye, StopCircle, Menu } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import Sidebar from '../../../../components/ui/sidebar';
-import Header from '../../../../components/ui/header';
-import { SubscriptionProvider } from '../../../../contexts/SubscriptionContext';
-import { useAuth } from '../../../../contexts/AuthContext';
-import { AuthGuard } from '../../../../components/auth/AuthGuard';
+import Sidebar from '@/components/ui/sidebar';
+import Header from '@/components/ui/header';
+import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 // 
 // Helper function to format base64 image data
 
