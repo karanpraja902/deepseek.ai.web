@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import { Menu, X, Settings, User, LogOut, HelpCircle } from 'lucide-react';
-import { useResponsive } from '../../hooks/use-mobile';
+import { useResponsive } from '@/hooks/use-mobile';
 
 interface HeaderProps {
   title: string;

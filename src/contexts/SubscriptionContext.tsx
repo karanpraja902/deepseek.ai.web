@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { UserApiService } from '../services/api/user';
+import { UserApiService } from '@/services/api/user';
 
 interface Subscription {
   plan: string;

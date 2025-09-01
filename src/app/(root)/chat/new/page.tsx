@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChatApiService } from '../../../services/api/chat';
-import { useAuth } from '../../../contexts/AuthContext';
-import { AuthGuard } from '../../../components/auth/AuthGuard';
+import { ChatApiService } from '@/services/api/chat';
+import { useAuth } from '@/contexts/AuthContext';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 
 export default function NewChatPage() {
   const router = useRouter();

@@ -1,13 +1,13 @@
 'use client';
-import { uploadFilesClient, deleteFileFromCloudinary, UploadedClientFile } from '../../services/api/cloudinary';
-import { PdfApiService, ChatApiService, AiApiService } from '../../services/api';
-import type { ModelInfo } from '../../services/api/ai';
-import { getContextStatus } from '../../services/api/context-manager';
+import { uploadFilesClient, deleteFileFromCloudinary, UploadedClientFile } from '@/services/api/cloudinary';
+import { PdfApiService, ChatApiService, AiApiService } from '@/services/api';
+import type { ModelInfo } from '@/services/api/ai';
+import { getContextStatus } from '@/services/api/context-manager';
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { Paperclip, X, StopCircle, Loader2, Globe, Image as ImageIcon, Code2, FileText, Table, CloudSun, FlaskConical, Wrench, SlidersHorizontal, Settings, Search, Palette, Square } from 'lucide-react';
 import DictationButton from '../ui/DictationButton';
 import { LuCpu } from "react-icons/lu"
-import { useSubscription } from '../../contexts/SubscriptionContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { FaLock, FaLockOpen } from 'react-icons/fa';
 
 interface ChatInputProps {
