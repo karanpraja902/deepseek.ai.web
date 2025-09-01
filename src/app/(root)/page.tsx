@@ -1,17 +1,44 @@
-import { redirect } from 'next/navigation';
-import { ChatApiService } from '../../services/api/chat';
+'use client';
 
-// Static user ID for the demo
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../../contexts/AuthContext';
+import LandingPage from '../landing/page';
 
+export default function Page() {
+  const router = useRouter();
+  const { userId, isLoading } = useAuth();
 
-export default async function Page() {
-const STATIC_USER_ID = 'dynamic_user_sharan';
-// Use LangChain to load and split the PDF document.et 
-const response = await ChatApiService.createChat(STATIC_USER_ID); 
-// create a new chat with user context
-console.log("chatdata:",response.data)
-console.log("loadid:",response.data.chat.id)
-  let id=response.data.chat.id;
-  redirect(`/chat/${id}`); // redirect to chat page, see below
+  useEffect(() => {
+    if (!isLoading && userId) {
+      // If user is authenticated, redirect to chat
+      router.push('/chat/new');
+    }
+  }, [userId, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-300">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!userId) {
+    // If user is not authenticated, show landing page
+    return <LandingPage />;
+  }
+
+  // If user is authenticated, show loading while redirecting
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-300">Redirecting to chat...</p>
+      </div>
+    </div>
+  );
 }
-// my name is karan prajapat, my age is 19years, love playing football, i am a student of computer science and engineering, i am from gujarat, india

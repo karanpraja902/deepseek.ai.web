@@ -23,7 +23,8 @@ import { toast } from 'react-hot-toast';
 import { useResponsive } from '../../hooks/use-mobile';
 import { ChatApiService } from '@/services/api';
 import { useSubscription } from '../../contexts/SubscriptionContext';
-const STATIC_USER_ID = 'dynamic_user_sharan';
+import { useAuth } from '../../contexts/AuthContext';
+
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
@@ -50,6 +51,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const router = useRouter();
   const { subscription, isLoading } = useSubscription();
+  const { logout } = useAuth();
   
   // Get current plan display name
   const getCurrentPlanName = () => {
@@ -70,7 +72,7 @@ export default function Sidebar({
     const loadRecentChats = async () => {
       try {
         setIsLoadingChats(true);
-        const response = await ChatApiService.getUserChats(STATIC_USER_ID);
+        const response = await ChatApiService.getUserChats(userId);
         if (response.success) {
           setRecentChats(response.data.chats || []);
         }
@@ -86,14 +88,14 @@ export default function Sidebar({
     if (isUserInitialized) {
       loadRecentChats();
     }
-  }, [isUserInitialized]);
+  }, [isUserInitialized, userId]);
 
   const createNewChat = async () => {
     try {
-      const response = await ChatApiService.createChat(STATIC_USER_ID); 
+      const response = await ChatApiService.createChat(userId); 
       if (response.success && response.data.chat) {
         // Refresh the recent chats list
-        const updatedChatsResponse = await ChatApiService.getUserChats(STATIC_USER_ID);
+        const updatedChatsResponse = await ChatApiService.getUserChats(userId);
         console.log("updatedChatsResponse.data.chats:", updatedChatsResponse.data.chats);
         setRecentChats(updatedChatsResponse.data.chats || []);
         
@@ -169,9 +171,17 @@ export default function Sidebar({
     chat.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleLogout = () => {
-    toast.success('Logged out successfully');
-    setUserMenuOpen(false);
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success('Logged out successfully');
+      setUserMenuOpen(false);
+      // Redirect to sign-in page
+      router.push('/sign-in');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      toast.error('Logout failed. Please try again.');
+    }
   };
 
 
@@ -348,7 +358,7 @@ export default function Sidebar({
 
   // Desktop sidebar - only shown on laptop+ screens (unchanged)
   return (
-    <div className={`hidden lg:block lg:bg-gray-800 transition-all duration-300 ease-in-out ${
+    <div className={`hidden lg:block lg:bg-gray-900/95 transition-all duration-300 ease-in-out ${
       isOpen ? 'w-64' : 'w-20'
     } flex flex-col h-full`}>
       {/* Sidebar header */}
@@ -426,7 +436,7 @@ export default function Sidebar({
                 >
                   <button
                     onClick={() => onChatSelect(chat.id)}
-                    className={`w-full text-left p-2 rounded-md flex ${
+                    className={`w-full text-left p-2 rounded-md flex text-gray-100 ${
                       currentChatId === chat.id 
                         ? 'bg-gray-500 text-gray-100' 
                         : 'hover:bg-gray-500 hover:text-white'
@@ -469,12 +479,12 @@ export default function Sidebar({
 
 
         {/* User section */}
-        <div className="relative">
+        <div className="relative text-gray-100">
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
             className="w-full flex items-center gap-3 p-2 rounded-md  hover:bg-gray-500 hover:text-gray-100"
           >
-           {isOpen&& <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
+           {isOpen&& <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center ">
               <User className="w-5 h-5 text-blue-600" />
             </div>}
             {isOpen && (

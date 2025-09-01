@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import "../globals.css";
 // import "@radix-ui/themes/styles.css";
 import { Toaster } from 'react-hot-toast';
+import { AuthProvider } from '../../contexts/AuthContext';
 
 export default function RootLayout({
   children,
@@ -13,12 +14,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {/* header */}
-        <Toaster position="top-left" />
- 
-        {/* chatsidebar */}
-        {children}
-        {/* footer */}
+        <AuthProvider>
+          {/* header */}
+          <Toaster position="top-left" />
+   
+          {/* chatsidebar */}
+          {children}
+          {/* footer */}
+        </AuthProvider>
       </body>
     </html>
   );

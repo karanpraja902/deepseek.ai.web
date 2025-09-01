@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Check, Crown, Zap, Star, Settings, User, Bell, Shield, CreditCard, ArrowLeft, Loader2, Mail, Calendar, Clock } from 'lucide-react';
 import { AppSidebar } from '../../../components/app-sidebar';
 import { StripeService } from '../../../services/api/stripe';
 import { UserApiService } from '../../../services/api/user';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../../contexts/AuthContext';
+import { AuthGuard } from '../../../components/auth/AuthGuard';
 
 interface UserProfile {
   id: string;
@@ -40,9 +42,10 @@ interface SubscriptionStatus {
   daysLeft?: number;
 }
 
-const SettingsPage = () => {
+const SettingsPageContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, userId, isLoading: authLoading } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
@@ -50,24 +53,28 @@ const SettingsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState('overview');
   
-  // Static user ID for demo - in production, get from auth context
-  const STATIC_USER_ID = 'dynamic_user_sharan';
+  // Use the actual logged-in user ID instead of static ID
+  const currentUserId = userId;
 
   // Function to refresh user data
   const refreshUserData = async () => {
     try {
       // Fetch user profile
-      const profileResponse = await UserApiService.getUserProfile(STATIC_USER_ID);
-      if (profileResponse.success && profileResponse.data?.user) {
-        console.log('User profile refreshed:', profileResponse.data.user);
-        setUserProfile(profileResponse.data.user);
+      if (currentUserId) {
+        const profileResponse = await UserApiService.getUserProfile(currentUserId);
+        if (profileResponse.success && profileResponse.data?.user) {
+          console.log('User profile refreshed:', profileResponse.data.user);
+          setUserProfile(profileResponse.data.user);
+        }
       }
 
       // Fetch subscription status
-      const subscriptionResponse = await StripeService.getSubscriptionStatus(STATIC_USER_ID);
-      console.log('Subscription status refreshed:', subscriptionResponse);
-      if (subscriptionResponse.success && subscriptionResponse.data) {
-        setSubscriptionStatus(subscriptionResponse.data);
+      if (currentUserId) {
+        const subscriptionResponse = await StripeService.getSubscriptionStatus(currentUserId);
+        console.log('Subscription status refreshed:', subscriptionResponse);
+        if (subscriptionResponse.success && subscriptionResponse.data) {
+          setSubscriptionStatus(subscriptionResponse.data);
+        }
       }
     } catch (err: any) {
       console.error('Failed to refresh user data:', err);
@@ -129,8 +136,8 @@ const SettingsPage = () => {
             };
           }
 
-          if (subscriptionData) {
-            await UserApiService.updateUserSubscription(STATIC_USER_ID, subscriptionData);
+          if (subscriptionData && currentUserId) {
+            await UserApiService.updateUserSubscription(currentUserId, subscriptionData);
             
             // Refresh user data to show updated subscription
             await refreshUserData();
@@ -142,10 +149,7 @@ const SettingsPage = () => {
 
       updateSubscription();
 
-      toast.success(
-        `Successfully subscribed to ${plan.replace('-', ' ').toUpperCase()}! 🎉`,
-        { duration: 5000 }
-      );
+      
       
       // Clean up URL parameters
       router.replace('/settings');
@@ -158,7 +162,7 @@ const SettingsPage = () => {
       // Clean up URL parameters
       router.replace('/settings');
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, currentUserId]);
 
   const handleBackToChat = () => {
     // Try to go back to the previous page, or fallback to home
@@ -174,30 +178,29 @@ const SettingsPage = () => {
       
       // Different handling for Pro Trial vs paid plans
       if (planKey === 'pro-trial') {
-        toast.loading(`Activating ${planName}...`, {
-          id: 'stripe-checkout'
-        });
+        // toast.loading(`Activating ${planName}...`, {
+        //   id: 'stripe-checkout'
+        // });
         
         // For Pro Trial, we can update immediately since it's free
         try {
-          await UserApiService.updateUserSubscription(STATIC_USER_ID, {
-            plan: planName,
-            status: 'trial',
-            subscribedAt: new Date(),
-            trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
-          });
-          console.log('Pro Trial subscription updated:', STATIC_USER_ID, planName);
-          
-          // Refresh user data
-          const profileResponse = await UserApiService.getUserProfile(STATIC_USER_ID);
-          if (profileResponse.success && profileResponse.data?.user) {
-            setUserProfile(profileResponse.data.user);
+          if (currentUserId) {
+            await UserApiService.updateUserSubscription(currentUserId, {
+              plan: planName,
+              status: 'trial',
+              subscribedAt: new Date(),
+              trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
+            });
+            console.log('Pro Trial subscription updated:', currentUserId, planName);
+            
+            // Refresh user data
+            const profileResponse = await UserApiService.getUserProfile(currentUserId);
+            if (profileResponse.success && profileResponse.data?.user) {
+              setUserProfile(profileResponse.data.user);
+            }
+            
+           
           }
-          
-          toast.success(`🎉 ${planName} activated successfully!`, {
-            id: 'stripe-checkout',
-            duration: 5000
-          });
         } catch (updateError) {
           console.error('Failed to update Pro Trial subscription:', updateError);
           toast.error('Failed to activate trial. Please try again.', {
@@ -206,11 +209,14 @@ const SettingsPage = () => {
         }
       } else {
         // For paid plans, redirect to Stripe checkout
-        toast.loading(`Redirecting to ${planName} checkout...`, {
-          id: 'stripe-checkout'
-        });
         
-        await StripeService.redirectToCheckout(planKey, STATIC_USER_ID);
+        
+        if (currentUserId) {
+          toast.loading(`Redirecting to ${planName} checkout...`, {
+            id: 'stripe-checkout'
+          });
+          await StripeService.redirectToCheckout(planKey, currentUserId);
+        }
       }
     } catch (error: any) {
       console.error('Subscription error:', error);
@@ -396,22 +402,23 @@ const SettingsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-700">
+    <AuthGuard>
+      <div className="bg-gray-900">
       {/* Header with back button - no sidebar */}
-      <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b border-gray-200 dark:border-gray-700 px-4 md:px-6 bg-white dark:bg-gray-800">
+      <header className="sticky top-0 bg-gray-800/95 z-10 flex h-16 shrink-0 items-center gap-4 border-b border-gray-900 dark:border-gray-700 px-4 md:px-6  dark:bg-gray-800">
         <button
           onClick={handleBackToChat}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-100 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="hidden sm:inline">Back to Chat</span>
         </button>
-        <h1 className="text-lg font-semibold">Settings</h1>
+        <h1 className="text-lg font-semibold text-gray-100">Settings</h1>
       </header>
 
       {/* Main Content - Full Width with Responsive Layout */}
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
+      <div className="flex-1 overflow-auto bg-900/95">
+        <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 bg-gray-900/95">
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
             
             {/* Left Sidebar Menu - Responsive */}
@@ -754,6 +761,15 @@ const SettingsPage = () => {
         </div>
       </div>
     </div>
+    </AuthGuard>
+  );
+};
+
+const SettingsPage = () => {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <SettingsPageContent />
+    </Suspense>
   );
 };
 

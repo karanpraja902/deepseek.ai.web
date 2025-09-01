@@ -38,6 +38,7 @@ export class StripeService {
    */
   static async redirectToCheckout(planKey: string, userId: string) {
     try {
+      
         console.log('Redirecting to Stripe Checkout for plan:', planKey);
         console.log('User ID:', userId);
       const plan = SUBSCRIPTION_PLANS[planKey];

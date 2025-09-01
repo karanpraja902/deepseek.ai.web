@@ -19,7 +19,7 @@ export default function Header({ title, onMenuToggle, isMenuOpen, userId }: Head
   }
 
   return (
-    <header className="bg-gray-800/90 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-30">
+    <header className="bg-gray-900/90 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-30">
       <div className="px-4 py-3 sm:py-4">
         <div className="flex items-center justify-between">
           {/* Mobile Menu Button */}

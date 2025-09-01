@@ -14,14 +14,14 @@ import remarkGfm from 'remark-gfm';
 import Sidebar from '../../../../components/ui/sidebar';
 import Header from '../../../../components/ui/header';
 import { SubscriptionProvider } from '../../../../contexts/SubscriptionContext';
-
-// Static user ID for the demo
-const STATIC_USER_ID = 'dynamic_user_sharan';
+import { useAuth } from '../../../../contexts/AuthContext';
+import { AuthGuard } from '../../../../components/auth/AuthGuard';
 // 
 // Helper function to format base64 image data
 
 
 export default function ChatPage() {
+  const { userId } = useAuth();
 // Timer state variables
   const params = useParams();
   const [chatId, setChatId] = useState<string | null>(null);
@@ -67,7 +67,46 @@ useEffect(() => {
   
 
   // Optimized status management for all operations
+   // Monitor status changes for debugging
   useEffect(() => {
+    console.log("Status changed to:", status, "Sub:", statusSub);
+  }, [status, statusSub]);
+
+  // Load messages from database when component mounts
+  useEffect(() => {
+    const loadMessages = async () => {
+      try {
+        if (!chatId || chatId === 'undefined') {
+          console.error('Invalid chatId:', chatId);
+          return;
+        }
+        
+        const response = await ChatApiService.getChatMessages(chatId);
+        if (response.success && response.data.messages) {
+          // Transform database messages to frontend format
+          const transformedMessages = response.data.messages.map((msg: any, index: number) => ({
+            id: msg._id || `msg-${index}`,
+            role: msg.role,
+            content: msg.content,
+            parts: msg.parts || [{ type: 'text', text: msg.content }],
+            files: msg.files || [],
+            metadata: msg.metadata || {},
+            createdAt: new Date(msg.timestamp || Date.now())
+          }));
+          console.log("transformedMessages:", transformedMessages);
+          setMessages(transformedMessages);
+        }
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+        // Continue with empty messages if loading fails
+      }
+    };
+
+    if (chatId && chatId !== 'undefined') {
+      loadMessages();
+    }
+  }, [chatId]);
+ useEffect(() => {
     let statusMessages: Array<{ main: string; sub: string }> = [];
     let operationType = '';
 
@@ -131,45 +170,6 @@ useEffect(() => {
     }
   }, [isImageGenerating, isWebSearching, isDocumentAnalyzing, status]);
 
-  // Monitor status changes for debugging
-  useEffect(() => {
-    console.log("Status changed to:", status, "Sub:", statusSub);
-  }, [status, statusSub]);
-
-  // Load messages from database when component mounts
-  useEffect(() => {
-    const loadMessages = async () => {
-      try {
-        if (!chatId || chatId === 'undefined') {
-          console.error('Invalid chatId:', chatId);
-          return;
-        }
-        
-        const response = await ChatApiService.getChatMessages(chatId);
-        if (response.success && response.data.messages) {
-          // Transform database messages to frontend format
-          const transformedMessages = response.data.messages.map((msg: any, index: number) => ({
-            id: msg._id || `msg-${index}`,
-            role: msg.role,
-            content: msg.content,
-            parts: msg.parts || [{ type: 'text', text: msg.content }],
-            files: msg.files || [],
-            metadata: msg.metadata || {},
-            createdAt: new Date(msg.timestamp || Date.now())
-          }));
-          console.log("transformedMessages:", transformedMessages);
-          setMessages(transformedMessages);
-        }
-      } catch (error) {
-        console.error('Failed to load messages:', error);
-        // Continue with empty messages if loading fails
-      }
-    };
-
-    if (chatId && chatId !== 'undefined') {
-      loadMessages();
-    }
-  }, [chatId]);
 
   // Custom sendMessage function that works with your backend (memoized for performance)
   const sendMessage = useCallback(async (message: any) => {
@@ -563,14 +563,14 @@ useEffect(() => {
         // Use ChatApiService for streaming request
         const response = await ChatApiService.sendMessage(apiMessages, {
           signal: controller.signal,
-          userId: STATIC_USER_ID,
+          userId: userId || '',
           model: model
         });
         // const result=await response.json()
         // console.log("smresponse:", result)
         console.log("Request body sent:", JSON.stringify({
           messages: apiMessages,
-          userId: STATIC_USER_ID
+          userId: userId || ''
         }, null, 2))
         setStatus('streaming');
 
@@ -898,7 +898,7 @@ useEffect(() => {
 
   // Enhanced send message with user context and response time measurement
   const sendMessageWithUser = useCallback(async (message: any) => {
-    console.log("static_user_id", STATIC_USER_ID);
+    console.log("static_user_id", userId || '');
 
     // Start response time measurement with high precision
     const startTime = performance.now();
@@ -917,7 +917,7 @@ useEffect(() => {
     // Add user context to the message metadata
     const messageWithUser = {
       ...message,
-      userId: STATIC_USER_ID, chatId,
+      userId: userId || '', chatId,
       metadata: {
         ...message.metadata,
         chatId,
@@ -1272,7 +1272,7 @@ useEffect(() => {
         // Load user profile with memory context (non-blocking)
         if (isUserInitialized) {
           // Load user profile in background without blocking the chat loading
-          AuthApiService.getUserWithMemory(STATIC_USER_ID)
+          AuthApiService.getUserWithMemory(userId || '')
             .then((userResponse) => {
               console.log("userResponse:", userResponse);
               if (userResponse.success) {
@@ -1386,9 +1386,10 @@ useEffect(() => {
   console.log("messagesaaaaaaaaaaa:", messages);
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <AuthGuard>
+      <div className="flex h-screen bg-gray-100">
              {/* Sidebar - Always rendered, but shown differently based on screen size */}
-        <SubscriptionProvider userId={STATIC_USER_ID}>
+        <SubscriptionProvider userId={userId || ''}>
           <Sidebar
           setChatId={setChatId}
            isOpen={sidebarOpen}
@@ -1398,14 +1399,14 @@ useEffect(() => {
            onChatSelect={handleChatSelect}
            onModelChange={handleModelChange}
            currentModel={model}
-           userId={STATIC_USER_ID}
+           userId={userId || ''}
          />
         </SubscriptionProvider>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden dark:bg-gray-950">
         {/* Mobile Header with Menu Button - Only for mobile screens */}
-        <div className="lg:hidden bg-gray-800/90 backdrop-blur-sm border-b border-gray-700 p-4">
+        <div className="lg:hidden bg-gray-900/95 backdrop-blur-sm border-b border-gray-700 p-4">
           <div className="flex items-center justify-between">
             <button
               onClick={toggleSidebar}
@@ -1424,12 +1425,12 @@ useEffect(() => {
             title="AI Chat"
             onMenuToggle={toggleSidebar}
             isMenuOpen={sidebarOpen}
-            userId={STATIC_USER_ID}
+            userId={userId || ''}
           />
         </div>
 
         {/* Chat content */}
-        <div className="flex-1 overflow-hidden flex flex-col bg-gray-700/80">
+        <div className="flex-1 overflow-hidden flex flex-col bg-gray-900/90">
           <div className="flex-1 flex flex-col w-full min-h-0">
             {/* Welcome Header */}
             {!messages.length && (
@@ -1441,7 +1442,7 @@ useEffect(() => {
                   Powered by Google&apos;s Generative AI with Memory
                 </p>
                 <p className="text-xs sm:text-sm text-gray-200 mt-2">
-                  Chat ID: {chatId} | User: {STATIC_USER_ID}
+                  Chat ID: {chatId} | User: {userId || ''}
                 </p>
 
                 {/* User Profile Display */}
@@ -1952,7 +1953,7 @@ useEffect(() => {
                                 // For streaming messages, show chunks immediately for faster display
                                 if (message.isStreaming && part.chunks && part.chunks.length > 0) {
                                   return (
-                                    <div key={`${message.id}-text-${index}`} className="w-full whitespace-pre-wrap leading-relaxed markdown">
+                                    <div key={`${message.id}-text-${index}`} className="gray-500 w-full whitespace-pre-wrap leading-relaxed markdown">
                                       {/* Render chunks directly for immediate display */}
                                       {part.chunks.map((chunk: string, chunkIndex: number) => (
                                         <span
@@ -1970,7 +1971,7 @@ useEffect(() => {
 
                                 // For completed messages, use markdown rendering
                                 return (
-                                  <div key={`${message.id}-text-${index}`} className="w-full whitespace-pre-wrap leading-relaxed markdown">
+                                  <div key={`${message.id}-text-${index}`} className="w-full whitespace-pre-wrap leading-relaxed markdown text-gray-200">
                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                       {part.text}
                                     </ReactMarkdown>
@@ -2059,7 +2060,7 @@ useEffect(() => {
  </div>} 
         {/* Input Form - Always fixed at bottom */}
         
-        <SubscriptionProvider userId={STATIC_USER_ID}>
+        <SubscriptionProvider userId={userId || ''}>
           <ChatInput
             input={input}
             setInput={setInput}
@@ -2146,5 +2147,6 @@ useEffect(() => {
       )}
     </div>
     </div>
+    </AuthGuard>
   );
 }
