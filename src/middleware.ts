@@ -4,7 +4,8 @@ const publicRoutes = new Set(["/sign-in", "/sign-up", "/"]);
 const authOnlyRoutes = new Set(["/sign-in", "/sign-up"]); // Routes only for unauthenticated users
 const authRoutes = new Set(["/auth/success"]); // Routes that need special handling during auth flow
 
-export function middleware(req: NextRequest) {
+export function middleware(req: NextRequest, res: NextResponse) {
+  // console.log("middlewarettt", res);
   console.log("middleware");
   const { pathname } = req.nextUrl;
   const userToken = req.cookies.get("auth_token");

@@ -12,7 +12,7 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  initiateGoogleLogin: () => void;
+
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -114,9 +114,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const initiateGoogleLogin = () => {
-    AuthApiService.initiateGoogleLogin();
-  };
+  
 
   // Check for existing user session on mount
   useEffect(() => {
@@ -144,7 +142,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     refreshUser,
-    initiateGoogleLogin,
+  
   };
 
   return (

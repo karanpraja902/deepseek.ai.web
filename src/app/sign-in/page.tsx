@@ -60,13 +60,17 @@ const SignInPage = () => {
     setIsLoading(true);
     
     try {
-      const response = await AuthApiService.login(email, password);
+      const response = await fetch(`api/auth/login`, {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await response.json();
       console.log("login response", response);
-      if (response.success) {
-        toast.success(response.message || "Login successful!");
+      if (data.success) {
+        toast.success(data.message || "Login successful!");
         window.location.href = '/chat/new';
       } else {
-        toast.error(response.error || "Login failed");
+        toast.error(data.error || "Login failed");
       }
     } catch (error: unknown) {
       console.error(error);

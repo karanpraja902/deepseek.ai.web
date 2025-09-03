@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 export interface AuthUser {
   id: string;
@@ -70,7 +70,7 @@ export class AuthApiService {
   static async login(email: string, password: string): Promise<AuthResponse> {
     try {
       console.log("Login request", email, password);
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(`api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -163,9 +163,11 @@ export class AuthApiService {
   }
 
   static initiateGoogleLogin(): void {
-    console.log("Initiating Google login");
+    console.log("Initiating Google login - redirecting to backend");
+    // Redirect directly to backend Google OAuth endpoint
     window.location.href = `${API_BASE_URL}/auth/google`;
   }
+
 
   static async updateUserMemory(userId: string, memory: Record<string, unknown>) {
     try {
