@@ -181,8 +181,8 @@ Create a `.env.local` file in the client directory:
 
 ```env
 # API Configuration
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
-NEXT_PUBLIC_CLIENT_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=https://deepseek-ai-server.vercel.app/api
+NEXT_PUBLIC_CLIENT_URL=https://deepseek-ai-client.vercel.app
 
 # Stripe Configuration
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
