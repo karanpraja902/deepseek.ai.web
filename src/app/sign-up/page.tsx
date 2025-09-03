@@ -1,13 +1,13 @@
 "use client";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { AuthApiService } from "@/services/api/auth";
+} from "../../components/ui/card";
+import { Input } from "../../components/ui/input";
+import { AuthApiService } from "../../services/api/auth";
 import { Eye, EyeOff, Lock, Mail, User, AlertCircle, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -66,6 +66,7 @@ const SignUpPage = () => {
         setIsLoading(true);
         
         try {
+            console.log("register request", name, email, password);
             const response = await AuthApiService.register(name, email, password);
             
             if (response.success) {

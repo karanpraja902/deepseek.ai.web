@@ -1,13 +1,14 @@
 "use client";
-import { Button } from "@/components/ui/button";
+
+import { Button } from "../../components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { AuthApiService } from "@/services/api/auth";
+} from "../../components/ui/card";
+import { Input } from "../../components/ui/input";
+import { AuthApiService } from "../../services/api/auth";
 import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -60,10 +61,10 @@ const SignInPage = () => {
     
     try {
       const response = await AuthApiService.login(email, password);
-      
+      console.log("login response", response);
       if (response.success) {
         toast.success(response.message || "Login successful!");
-        router.push('/');
+        window.location.href = '/chat/new';
       } else {
         toast.error(response.error || "Login failed");
       }

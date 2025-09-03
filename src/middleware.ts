@@ -1,30 +1,37 @@
 import { NextResponse, NextRequest } from "next/server";
 
-const publicRoute = new Set(["/sign-in", "/sign-up", "/"]);
+const publicRoutes = new Set(["/sign-in", "/sign-up", "/"]);
+const authOnlyRoutes = new Set(["/sign-in", "/sign-up"]); // Routes only for unauthenticated users
+const authRoutes = new Set(["/auth/success"]); // Routes that need special handling during auth flow
 
 export function middleware(req: NextRequest) {
+  console.log("middleware");
   const { pathname } = req.nextUrl;
   const userToken = req.cookies.get("auth_token");
+  console.log("middleware userToken", userToken);
 
-  // Skip middleware for API routes and static files
+  // Skip middleware for API routes, static files, and auth flow routes
   if (pathname.startsWith("/api") || 
       pathname.startsWith("/_next") || 
-      pathname.startsWith("/conversation")) {
+      pathname.startsWith("/conversation") ||
+      authRoutes.has(pathname)) {
     return NextResponse.next();
   }
 
-  // Check if user has a token and trying to access public routes like signup signin
-  if (publicRoute.has(pathname) && userToken) {
+  // Redirect authenticated users away from auth-only routes (sign-in, sign-up)
+  if (authOnlyRoutes.has(pathname) && userToken) {
+    console.log("middleware redirecting authenticated user away from auth page");
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  // Allow access to public routes
-  if (publicRoute.has(pathname)) {
+  // Allow access to public routes (including home page)
+  if (publicRoutes.has(pathname)) {
     return NextResponse.next();
   }
 
   // Check if user is authenticated for protected routes
   if (!userToken) {
+    console.log("middleware redirecting unauthenticated user to sign-in");
     return NextResponse.redirect(new URL("/sign-in", req.url));
   }
 
@@ -38,6 +45,7 @@ export const config = {
     "/sign-in", 
     "/sign-up",
     "/chat/:path*",
-    "/auth/:path*"
+    "/auth/:path*",
+    "/settings"
   ],
 };
