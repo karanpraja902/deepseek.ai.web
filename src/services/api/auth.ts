@@ -69,6 +69,7 @@ export class AuthApiService {
 
   static async login(email: string, password: string): Promise<AuthResponse> {
     try {
+      console.log("Login request", email, password);
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -84,11 +85,7 @@ export class AuthApiService {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Store token in localStorage if provided
-      if (data.data?.token) {
-        localStorage.setItem('auth_token', data.data.token);
-      }
-
+      // Token is now handled via HTTP-only cookies, no localStorage needed
       return data;
     } catch (error: unknown) {
       console.error('Login error:', error);
@@ -99,6 +96,7 @@ export class AuthApiService {
 
   static async register(name: string, email: string, password: string): Promise<AuthResponse> {
     try {
+      console.log("Register request", name, email, password);
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
@@ -114,11 +112,7 @@ export class AuthApiService {
         throw new Error(data.error || 'Registration failed');
       }
 
-      // Store token in localStorage if provided
-      if (data.data?.token) {
-        localStorage.setItem('auth_token', data.data.token);
-      }
-
+      // Token is now handled via HTTP-only cookies, no localStorage needed
       return data;
     } catch (error: unknown) {
       console.error('Registration error:', error);
@@ -129,14 +123,12 @@ export class AuthApiService {
 
   static async getCurrentUser(): Promise<AuthResponse> {
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/auth/me`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
         },
-        credentials: 'include',
+        credentials: 'include', // This will include HTTP-only cookies
       });
 
       const data = await response.json();
@@ -163,16 +155,15 @@ export class AuthApiService {
         credentials: 'include',
       });
 
-      // Clear local storage
-      localStorage.removeItem('auth_token');
+      // No need to clear localStorage since we're not using it for tokens anymore
     } catch (error) {
       console.error('Logout error:', error);
-      // Clear local storage even if request fails
-      localStorage.removeItem('auth_token');
+      // Server-side cookie clearing will handle the logout
     }
   }
 
   static initiateGoogleLogin(): void {
+    console.log("Initiating Google login");
     window.location.href = `${API_BASE_URL}/auth/google`;
   }
 

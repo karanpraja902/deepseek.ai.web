@@ -9,6 +9,7 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 export default function NewChatPage() {
   const router = useRouter();
   const { userId } = useAuth();
+  console.log("chatpageuserId:", userId);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
 
   useEffect(() => {

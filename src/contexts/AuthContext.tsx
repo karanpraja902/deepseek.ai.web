@@ -38,15 +38,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const refreshUser = async () => {
     try {
+      console.log('AuthContext: Refreshing user...');
       const response = await AuthApiService.getCurrentUser();
+      console.log('AuthContext: API response:', response);
+      
       if (response.success && response.data?.user) {
+        console.log('AuthContext: Setting user:', response.data.user);
         setUser(response.data.user);
       } else {
+        console.log('AuthContext: No user data in response, clearing user');
         setUser(null);
+        throw new Error('No user data received');
       }
     } catch (error) {
-      console.error('Failed to refresh user:', error);
+      console.error('AuthContext: Failed to refresh user:', error);
+      // Check if it's a network error vs auth error
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('AuthContext: Network error during user refresh');
+      }
       setUser(null);
+      throw error; // Re-throw to allow calling components to handle
     }
   };
 
@@ -77,15 +88,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AuthApiService.logout();
       // Clear user state
       setUser(null);
-      // Clear any stored data
-      localStorage.removeItem('auth_token');
       // Clear any other stored user data if needed
       sessionStorage.clear();
     } catch (error) {
       console.error('Logout error:', error);
       // Clear user even if request fails
       setUser(null);
-      localStorage.removeItem('auth_token');
       sessionStorage.clear();
     }
   };

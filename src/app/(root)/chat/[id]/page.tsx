@@ -2,7 +2,7 @@
 import React from 'react';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import ChatInput from '@/components/chat/ChatInput';
+
 import { AiApiService, AuthApiService, ChatApiService } from '@/services/api';
 import Weather from '@/components/weather/Weather';
 import type { UploadedClientFile } from '@/services/api/cloudinary';
@@ -16,6 +16,7 @@ import Header from '@/components/ui/header';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthGuard } from '@/components/auth/AuthGuard';
+import ChatInput from '@/components/chat/ChatInput';
 // 
 // Helper function to format base64 image data
 

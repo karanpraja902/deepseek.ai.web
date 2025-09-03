@@ -329,7 +329,9 @@ export default function Sidebar({
                       <User className="w-4 h-4" />
                       Profile
                     </button>
-                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center gap-2 text-gray-300">
+                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center gap-2 text-gray-300"
+                      onClick={() =>window.location.href = '/settings'}
+                      >
                       <Settings className="w-4 h-4" />
                       Settings
                     </button>
@@ -507,7 +509,7 @@ export default function Sidebar({
                   Profile
                 </button>
                 <button 
-                  onClick={() => router.push('/settings')}
+                  onClick={() =>window.location.href = '/settings'}
                   className="w-full text-left px-4 py-2 text-sm hover:bg-gray-500 flex items-center gap-2"
                 >
                   <Settings className="w-4 h-4" />
