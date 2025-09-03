@@ -39,6 +39,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const refreshUser = async () => {
     try {
       console.log('AuthContext: Refreshing user...');
+      console.log('AuthContext: Current cookies:', document.cookie);
+      
       const response = await AuthApiService.getCurrentUser();
       console.log('AuthContext: API response:', response);
       
@@ -52,10 +54,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('AuthContext: Failed to refresh user:', error);
-      // Check if it's a network error vs auth error
+      
+      // Enhanced error handling
       if (error instanceof TypeError && error.message.includes('fetch')) {
         console.error('AuthContext: Network error during user refresh');
+        throw new Error('Network error - please check your connection');
       }
+      
+      // Check for specific HTTP status codes
+      if (error instanceof Error && error.message.includes('401')) {
+        console.error('AuthContext: Authentication failed - invalid or expired token');
+        throw new Error('Authentication expired - please sign in again');
+      }
+      
+      if (error instanceof Error && error.message.includes('403')) {
+        console.error('AuthContext: Authorization failed - insufficient permissions');
+        throw new Error('Access denied - insufficient permissions');
+      }
+      
       setUser(null);
       throw error; // Re-throw to allow calling components to handle
     }
