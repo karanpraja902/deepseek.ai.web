@@ -70,7 +70,7 @@ export class AuthApiService {
   static async login(email: string, password: string): Promise<AuthResponse> {
     try {
       console.log("Login request", email, password);
-      const response = await fetch(`api/auth/login`, {
+      const response = await fetch(`/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

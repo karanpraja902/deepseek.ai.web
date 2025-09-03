@@ -13,9 +13,11 @@ export async function GET(request: NextRequest) {
     if (!code) {
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_CLIENT_URL || 'https://deepseek-ai-client.vercel.app'}/sign-in?error=no_code`);
     }
+    console.log("code", code);
+    console.log("state", state);
     
     // Forward the callback to backend
-    const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app'}/api/auth/google/callback?code=${code}&state=${state || ''}`, {
+    const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app'}/auth/google/callback?code=${code}&state=${state || ''}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

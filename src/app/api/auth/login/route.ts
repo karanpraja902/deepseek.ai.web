@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   console.log("login route", request);
   const { email, password } = await request.json();
 
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app'}/api/auth/login`, {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app'}/auth/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
   });
 
   const data = await response.json();
+  console.log("login response", data);
   if (data.success) {
     const token = data.data.token;
     (await cookies()).set('auth_token', token);
