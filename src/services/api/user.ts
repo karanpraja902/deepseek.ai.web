@@ -4,7 +4,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-ser
 export class UserApiService {
   static async getUserProfile(userId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/user/${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -25,7 +25,7 @@ export class UserApiService {
 
   static async updateUserProfile(userId: string, profileData: any) {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/user/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -54,7 +54,7 @@ export class UserApiService {
   }) {
     try {
       console.log('APIpdateUserSubscription', userId, subscriptionData);
-      const response = await fetch(`${API_BASE_URL}/user/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/user/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -76,7 +76,7 @@ console.log('APIUpdateUserSubscriptionresponse', response);
 
   static async getUserStats(userId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/${userId}/stats`, {
+      const response = await fetch(`${API_BASE_URL}/api/user/${userId}/stats`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
