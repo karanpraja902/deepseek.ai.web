@@ -9,6 +9,7 @@ export class UserApiService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -30,6 +31,7 @@ export class UserApiService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(profileData),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -58,6 +60,7 @@ export class UserApiService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ subscription: subscriptionData }),
+        credentials: 'include',
       });
 console.log('APIUpdateUserSubscriptionresponse', response);
       if (!response.ok) {
@@ -78,6 +81,7 @@ console.log('APIUpdateUserSubscriptionresponse', response);
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {

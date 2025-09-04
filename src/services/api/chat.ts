@@ -12,6 +12,7 @@ export class ChatApiService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ userId }),
+        credentials: 'include',
       });
       console.log("CreateResponseId:",response)
 
@@ -33,6 +34,7 @@ export class ChatApiService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -53,6 +55,7 @@ export class ChatApiService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -131,6 +134,7 @@ export class ChatApiService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -151,6 +155,7 @@ export class ChatApiService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -178,6 +183,7 @@ export class ChatApiService {
           model: options?.model
         }),
         signal: options?.signal,
+        credentials: 'include',
       });
 
       if (!response.ok) {

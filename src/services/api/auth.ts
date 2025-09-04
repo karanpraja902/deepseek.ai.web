@@ -35,6 +35,7 @@ export class AuthApiService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -55,6 +56,7 @@ export class AuthApiService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -179,6 +181,7 @@ export class AuthApiService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ memory }),
+        credentials: 'include',
       });
 
       if (!response.ok) {

@@ -25,6 +25,7 @@ export const uploadFilesClient = async (files: File[]): Promise<UploadedClientFi
       const response = await fetch(`${API_BASE_URL}/api/cloudinary/upload`, {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       });
       
       if (!response.ok) {
@@ -57,6 +58,7 @@ export const deleteFileFromCloudinary = async (publicId: string): Promise<boolea
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -79,6 +81,7 @@ export class CloudinaryApiService {
       const response = await fetch(`${API_BASE_URL}/api/cloudinary/upload`, {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -99,6 +102,7 @@ export class CloudinaryApiService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {

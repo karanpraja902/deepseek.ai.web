@@ -108,6 +108,7 @@ export class AiApiService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -135,6 +136,7 @@ export class AiApiService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(params),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -163,6 +165,7 @@ export class AiApiService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(params),
+        credentials: 'include',
       });
       console.log("webSearchWithAI response:", response);
       if (!response.ok) {
@@ -191,6 +194,7 @@ export class AiApiService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(params),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -219,6 +223,7 @@ export class AiApiService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(params),
+        credentials: 'include',
       });
 
       if (!response.ok) {
