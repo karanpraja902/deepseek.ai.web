@@ -27,12 +27,21 @@ export interface AuthResponse {
   error?: string;
 }
 
+
+import { cookies } from "next/headers";
+
+export const getCookie = async (name: string) => {
+  return (await cookies()).get(name)?.value ?? "";
+};
+
 export class AuthApiService {
   static async initializeStaticUser() {
+    const token = await getCookie("token");
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/init`, {
         method: 'POST',
         headers: {
+          Cookie: `token=${token}`,
           'Content-Type': 'application/json',
         },
         credentials: 'include',
@@ -50,10 +59,12 @@ export class AuthApiService {
   }
 
   static async getUserWithMemory(userId: string) {
+    const token = await getCookie("token");
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/user?userId=${userId}`, {
         method: 'GET',
         headers: {
+          Cookie: `token=${token}`,
           'Content-Type': 'application/json',
         },
         credentials: 'include',
@@ -71,11 +82,13 @@ export class AuthApiService {
   }
 
   static async login(email: string, password: string): Promise<AuthResponse> {
+    const token = await getCookie("token");
     try {
       console.log("Login request", email, password);
       const response = await fetch(`/api/auth/login`, {
         method: 'POST',
         headers: {
+          Cookie: `token=${token}`,
           'Content-Type': 'application/json',
         },
         credentials: 'include',
@@ -98,12 +111,17 @@ export class AuthApiService {
   }
 
   static async register(name: string, email: string, password: string): Promise<AuthResponse> {
+
+    const token = await getCookie("token");
+
     try {
       console.log("Register request", name, email, password);
       const response = await fetch(`/api/auth/register`, {
         method: 'POST',
+        
         headers: {
           'Content-Type': 'application/json',
+          Cookie: `token=${token}`,
         },
         credentials: 'include',
         body: JSON.stringify({ name, email, password }),
@@ -125,10 +143,12 @@ export class AuthApiService {
   }
 
   static async getCurrentUser(): Promise<AuthResponse> {
+    const token = await getCookie("token");
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         method: 'GET',
         headers: {
+          Cookie: `token=${token}`,
           'Content-Type': 'application/json',
         },
         credentials: 'include', // This will include HTTP-only cookies
@@ -149,10 +169,12 @@ export class AuthApiService {
   }
 
   static async logout(): Promise<void> {
+    const token = await getCookie("token");
     try {
       await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         headers: {
+          Cookie: `token=${token}`,
           'Content-Type': 'application/json',
         },
         credentials: 'include',
@@ -174,10 +196,12 @@ export class AuthApiService {
 
 
   static async updateUserMemory(userId: string, memory: Record<string, unknown>) {
+    const token = await getCookie("token");
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/user/${userId}/memory`, {
         method: 'PUT',
         headers: {
+          Cookie: `token=${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ memory }),
