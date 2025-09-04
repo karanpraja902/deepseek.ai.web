@@ -5,11 +5,17 @@ const authOnlyRoutes = new Set(["/sign-in", "/sign-up"]); // Routes only for una
 const authRoutes = new Set(["/auth/success"]); // Routes that need special handling during auth flow
 
 export function middleware(req: NextRequest, res: NextResponse) {
-  // console.log("middlewarettt", res);
   console.log("middleware");
   const { pathname } = req.nextUrl;
+  console.log("middleware pathname", pathname);
+  console.log("request",req)
   const userToken = req.cookies.get("auth_token");
   console.log("middleware userToken", userToken);
+  // console.log("middleware cookie",document.cookie.includes("auth_token"));
+  if (authRoutes.has(pathname)) {
+    // return NextResponse.next();
+    console.log("middleware authRoutes", pathname);
+  }
 
   // Skip middleware for API routes, static files, and auth flow routes
   if (pathname.startsWith("/api") || 
@@ -33,11 +39,12 @@ console.log("middleware pathname", pathname);
     return NextResponse.next();
   }
 
+
   // Check if user is authenticated for protected routes
-  if (!userToken) {
-    console.log("middleware redirecting unauthenticated user to sign-in");
-    return NextResponse.redirect(new URL("/sign-in", req.url));
-  }
+  // if (!userToken) {
+  //   console.log("middleware redirecting unauthenticated user to sign-in");
+  //   return NextResponse.redirect(new URL("/sign-in", req.url));
+  // }
 
   return NextResponse.next();
 }

@@ -99,6 +99,7 @@ export class AuthApiService {
     try {
       console.log("Register request", name, email, password);
       const response = await fetch(`/api/auth/register`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -124,6 +125,7 @@ export class AuthApiService {
 
   static async getCurrentUser(): Promise<AuthResponse> {
     try {
+
       const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         method: 'GET',
         headers: {
@@ -165,8 +167,7 @@ export class AuthApiService {
 
   static initiateGoogleLogin(): void {
     console.log("Initiating Google login - redirecting to backend");
-    // Redirect directly to backend Google OAuth endpoint
-    // window.location.href = `${API_BASE_URL}/api/auth/google`;
+
     window.location.href = `${API_BASE_URL}/api/auth/google`;
   }
 
