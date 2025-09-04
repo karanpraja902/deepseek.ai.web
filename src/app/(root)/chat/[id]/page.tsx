@@ -15,7 +15,6 @@ import Sidebar from '@/components/ui/sidebar';
 import Header from '@/components/ui/header';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { AuthGuard } from '@/components/auth/AuthGuard';
 import ChatInput from '@/components/chat/ChatInput';
 // 
 // Helper function to format base64 image data
@@ -1387,7 +1386,6 @@ useEffect(() => {
   console.log("messagesaaaaaaaaaaa:", messages);
 
   return (
-    <AuthGuard>
       <div className="flex h-screen bg-gray-100">
              {/* Sidebar - Always rendered, but shown differently based on screen size */}
         <SubscriptionProvider userId={userId || ''}>
@@ -2148,6 +2146,5 @@ useEffect(() => {
       )}
     </div>
     </div>
-    </AuthGuard>
   );
 }
