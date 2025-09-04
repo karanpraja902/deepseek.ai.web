@@ -67,7 +67,8 @@ const SignUpPage = () => {
         
         try {
             console.log("register request", name, email, password);
-            const response = await AuthApiService.register(name, email, password);
+            const { AuthClient } = await import('@/lib/auth-client');
+            const response = await AuthClient.register(name, email, password);
             
             if (response.success) {
                 toast.success(response.message || "Registration successful!");
@@ -85,8 +86,9 @@ const SignUpPage = () => {
         }
     };
 
-    const handleGoogleSignUp = () => {
-        AuthApiService.initiateGoogleLogin();
+    const handleGoogleSignUp = async () => {
+        const { AuthClient } = await import('@/lib/auth-client');
+        await AuthClient.initiateGoogleLogin();
     };
 
 

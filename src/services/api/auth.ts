@@ -28,20 +28,15 @@ export interface AuthResponse {
 }
 
 
-// Client-side cookie helper
-const getClientCookie = (name: string): string => {
-  if (typeof document !== 'undefined') {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift() || '';
-  }
-  return '';
+import { cookies } from "next/headers";
+
+export const getCookie = async (name: string) => {
+  return (await cookies()).get(name)?.value ?? "";
 };
 
 export class AuthApiService {
   static async initializeStaticUser() {
-    const token = getClientCookie("auth_token");
-    console.log("Initialize static user token", token);
+    const token = await getCookie("token");
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/init`, {
         method: 'POST',
@@ -64,7 +59,7 @@ export class AuthApiService {
   }
 
   static async getUserWithMemory(userId: string) {
-    const token = getClientCookie("auth_token");
+    const token = await getCookie("token");
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/user?userId=${userId}`, {
         method: 'GET',
@@ -87,7 +82,7 @@ export class AuthApiService {
   }
 
   static async login(email: string, password: string): Promise<AuthResponse> {
-    const token = getClientCookie("auth_token");
+    const token = await getCookie("token");
     try {
       console.log("Login request", email, password);
       const response = await fetch(`/api/auth/login`, {
@@ -117,7 +112,7 @@ export class AuthApiService {
 
   static async register(name: string, email: string, password: string): Promise<AuthResponse> {
 
-    const token = getClientCookie("auth_token");
+    const token = await getCookie("token");
 
     try {
       console.log("Register request", name, email, password);
@@ -148,8 +143,7 @@ export class AuthApiService {
   }
 
   static async getCurrentUser(): Promise<AuthResponse> {
-    const token = getClientCookie("auth_token");
-    console.log("Get current user token", token);
+    const token = await getCookie("token");
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         method: 'GET',
@@ -175,7 +169,7 @@ export class AuthApiService {
   }
 
   static async logout(): Promise<void> {
-    const token = getClientCookie("auth_token");
+    const token = await getCookie("token");
     try {
       await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
@@ -202,7 +196,7 @@ export class AuthApiService {
 
 
   static async updateUserMemory(userId: string, memory: Record<string, unknown>) {
-    const token = getClientCookie("auth_token");
+    const token = await getCookie("token");
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/user/${userId}/memory`, {
         method: 'PUT',

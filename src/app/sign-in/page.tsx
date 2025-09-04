@@ -60,12 +60,10 @@ const SignInPage = () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch(`/api/auth/login`, {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await response.json();
-      console.log("login response", response);
+      const { AuthClient } = await import('@/lib/auth-client');
+      const data = await AuthClient.login(email, password);
+      
+      console.log("login response", data);
       if (data.success) {
         toast.success(data.message || "Login successful!");
         window.location.href = '/chat/new';
@@ -81,8 +79,9 @@ const SignInPage = () => {
     }
   };
 
-  const handleGoogleLogin = () => {
-    AuthApiService.initiateGoogleLogin();
+  const handleGoogleLogin = async () => {
+    const { AuthClient } = await import('@/lib/auth-client');
+    await AuthClient.initiateGoogleLogin();
   };
 
 

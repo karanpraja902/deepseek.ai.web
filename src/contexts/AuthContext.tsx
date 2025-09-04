@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { AuthApiService, AuthUser } from '@/services/api/auth';
+import { AuthClient } from '@/lib/auth-client';
+import { AuthUser } from '@/lib/auth-actions';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -41,7 +42,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('AuthContext: Refreshing user...');
       console.log('AuthContext: Current cookies:', document.cookie);
       
-      const response = await AuthApiService.getCurrentUser();
+      const response = await AuthClient.getCurrentUser();
       console.log('AuthContext: API response:', response);
       
       if (response.success && response.data?.user) {
@@ -79,7 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await AuthApiService.login(email, password);
+      const response = await AuthClient.login(email, password);
       if (response.success && response.data?.user) {
         setUser(response.data.user);
       }
@@ -90,7 +91,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      const response = await AuthApiService.register(name, email, password);
+      const response = await AuthClient.register(name, email, password);
       if (response.success && response.data?.user) {
         setUser(response.data.user);
       }
@@ -101,7 +102,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      await AuthApiService.logout();
+      await AuthClient.logout();
       // Clear user state
       setUser(null);
       // Clear any other stored user data if needed
