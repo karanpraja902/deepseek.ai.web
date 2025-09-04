@@ -6,7 +6,7 @@ export class ChatApiService {
   static async createChat(userId: string) {
     console.log("CreateChat:",userId)
     try {
-      const response = await fetch(`${API_BASE_URL}/chat`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -29,7 +29,7 @@ export class ChatApiService {
 
   static async getChat(chatId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/chat/${chatId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat/${chatId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -50,7 +50,7 @@ export class ChatApiService {
 
   static async getUserChats(userId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/chat?userId=${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat?userId=${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ export class ChatApiService {
         metadata: metadata || {} 
       };
 
-      const response = await fetch(`${API_BASE_URL}/chat/${chatId}/messages`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat/${chatId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ export class ChatApiService {
 
   static async updateChatTitle(chatId: string, title: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/chat/${chatId}/title`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat/${chatId}/title`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -129,7 +129,7 @@ export class ChatApiService {
 
   static async deleteChat(chatId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/chat/${chatId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat/${chatId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -150,7 +150,7 @@ export class ChatApiService {
 
   static async getChatMessages(chatId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/chat/${chatId}/messages`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat/${chatId}/messages`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -171,10 +171,11 @@ export class ChatApiService {
 
   static async sendMessage(messages: any[], options?: { signal?: AbortSignal; enableWebSearch?: boolean; userId?: string; model?: string }) {
     try {
-      const response = await fetch(`${API_BASE_URL}/ai/chat/stream`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          
         },
         body: JSON.stringify({ 
           messages,
