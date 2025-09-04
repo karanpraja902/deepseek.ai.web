@@ -15,9 +15,29 @@ export async function POST(request: NextRequest) {
   });
 
   const data = await response.json();
-  if (data.success) {
+  console.log("login response", data);
+  console.log("login response structure:", JSON.stringify(data, null, 2));
+  
+  if (data.success && data.data && data.data.token) {
     const token = data.data.token;
-    (await cookies()).set('auth_token', token);
+    console.log("login token found:", token);
+    console.log("token length:", token.length);
+    
+    // Set the cookie on frontend
+    (await cookies()).set('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/'
+    });
+  } else {
+    console.error("Token not found in response:", {
+      success: data.success,
+      hasData: !!data.data,
+      hasToken: !!(data.data && data.data.token),
+      dataKeys: data.data ? Object.keys(data.data) : []
+    });
   }
 
   return NextResponse.json(data);

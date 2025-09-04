@@ -32,15 +32,18 @@ function AuthSuccessContent() {
         
         // Check if cookies are available in the browser
         const cookieExists = document.cookie.includes('auth_token');
+        console.log("cookieExists", cookieExists);
         addDebugInfo(`Cookie check: auth_token ${cookieExists ? 'found' : 'not found'} in document.cookie`);
-        
+        if (cookieExists) {
+          window.location.href = '/chat/new';
+        }
         // Refresh user data from the secure HTTP-only cookie
-        await refreshUser();
+        // await refreshUser();
         
         addDebugInfo('User refresh completed successfully, redirecting...');
         
         // Use window.location.href for a clean redirect that won't trigger middleware loops
-        window.location.href = '/chat/new';
+        // window.location.href = '/chat/new';
       } catch (error) {
         console.error('Auth success handling failed:', error);
         addDebugInfo(`Auth refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -54,7 +57,7 @@ function AuthSuccessContent() {
         
         // After 3 retries, redirect to sign-in with detailed error info
         const errorDetails = encodeURIComponent(`auth_failed_after_${retryCount + 1}_retries`);
-        window.location.href = `/sign-in?error=${errorDetails}`;
+        // window.location.href = `/sign-in?error=${errorDetails}`;
       }
     };
 

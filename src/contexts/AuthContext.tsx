@@ -121,7 +121,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const checkAuth = async () => {
       try {
         setIsLoading(true);
-        await refreshUser();
+        // await refreshUser();
       } catch (error) {
         console.error('Auth check failed:', error);
         setUser(null);
