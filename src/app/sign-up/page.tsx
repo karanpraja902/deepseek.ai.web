@@ -71,9 +71,10 @@ const SignUpPage = () => {
             
             if (response.success) {
                 toast.success(response.message || "Registration successful!");
-                router.push('/');
+                return window.location.href = '/chat/new';
             } else {
                 toast.error(response.error || "Registration failed");
+                return window.location.href = '/sign-in?error=Registration failed';
             }
         } catch (error: unknown) {
             console.error(error);

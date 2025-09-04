@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app/api';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
 
 export interface AuthUser {
   id: string;
@@ -70,7 +71,7 @@ export class AuthApiService {
   static async login(email: string, password: string): Promise<AuthResponse> {
     try {
       console.log("Login request", email, password);
-      const response = await fetch(`api/auth/login`, {
+      const response = await fetch(`/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +98,8 @@ export class AuthApiService {
   static async register(name: string, email: string, password: string): Promise<AuthResponse> {
     try {
       console.log("Register request", name, email, password);
-      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      const response = await fetch(`/api/auth/register`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,8 +125,7 @@ export class AuthApiService {
 
   static async getCurrentUser(): Promise<AuthResponse> {
     try {
-      console.log("Get current user request");
-      console.log("Get current user request", `${API_BASE_URL}/api/auth/me`);
+
       const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         method: 'GET',
         headers: {
@@ -166,7 +167,7 @@ export class AuthApiService {
 
   static initiateGoogleLogin(): void {
     console.log("Initiating Google login - redirecting to backend");
-    // Redirect directly to backend Google OAuth endpoint
+
     window.location.href = `${API_BASE_URL}/api/auth/google`;
   }
 
