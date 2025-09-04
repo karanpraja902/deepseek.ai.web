@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app/api';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
+const API_BASE_URL = 'http://localhost:5000';
 
 export interface AuthUser {
   id: string;
@@ -29,7 +30,7 @@ export interface AuthResponse {
 export class AuthApiService {
   static async initializeStaticUser() {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/init`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/init`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -49,7 +50,7 @@ export class AuthApiService {
 
   static async getUserWithMemory(userId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/user?userId=${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/user?userId=${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +98,7 @@ export class AuthApiService {
   static async register(name: string, email: string, password: string): Promise<AuthResponse> {
     try {
       console.log("Register request", name, email, password);
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      const response = await fetch(`/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,7 +124,7 @@ export class AuthApiService {
 
   static async getCurrentUser(): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -147,7 +148,7 @@ export class AuthApiService {
 
   static async logout(): Promise<void> {
     try {
-      await fetch(`${API_BASE_URL}/auth/logout`, {
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -165,13 +166,14 @@ export class AuthApiService {
   static initiateGoogleLogin(): void {
     console.log("Initiating Google login - redirecting to backend");
     // Redirect directly to backend Google OAuth endpoint
-    window.location.href = `${API_BASE_URL}/auth/google`;
+    // window.location.href = `${API_BASE_URL}/api/auth/google`;
+    window.location.href = `${`http://localhost:5000`}/api/auth/google`;
   }
 
 
   static async updateUserMemory(userId: string, memory: Record<string, unknown>) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/user/${userId}/memory`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/user/${userId}/memory`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

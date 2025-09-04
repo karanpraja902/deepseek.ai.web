@@ -1,9 +1,10 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app/api';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app/api';
+const API_BASE_URL = 'http://localhost:5000';
 
 export class PdfApiService {
   static async analyzePDF(url: string, filename: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/pdf/analyze`, {
+      const response = await fetch(`${API_BASE_URL}/api/pdf/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -24,7 +25,7 @@ export class PdfApiService {
 
   static async extractText(url: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/pdf/extract`, {
+      const response = await fetch(`${API_BASE_URL}/api/pdf/extract`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

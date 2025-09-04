@@ -154,7 +154,7 @@ useEffect(() => {
 
       const interval = setInterval(() => {
         currentIndex++;
-
+ 
         if (currentIndex < statusMessages.length) {
           const newStatus = statusMessages[currentIndex].main as 'idle' | 'streaming' | 'ready' | 'preparing' | 'generating' | 'connecting' | 'converting' | 'analyzing' | 'searching';
           const newStatusSub = statusMessages[currentIndex].sub;
@@ -166,7 +166,7 @@ useEffect(() => {
           console.log(`${operationType} - Status sequence complete, clearing interval`);
           clearInterval(interval);
         }
-      }, 4000); // Optimized timing for better UX
+      }, 5000); // Optimized timing for better UX
       return () => clearInterval(interval);
     }
   }, [isImageGenerating, isWebSearching, isDocumentAnalyzing, status]);

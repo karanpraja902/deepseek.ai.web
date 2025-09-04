@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 
-const publicRoutes = new Set(["/sign-in", "/sign-up", "/"]);
+const publicRoutes = new Set(["/sign-in", "/sign-up", "/"]);//routes that are accessible to all users
 const authOnlyRoutes = new Set(["/sign-in", "/sign-up"]); // Routes only for unauthenticated users
 const authRoutes = new Set(["/auth/success"]); // Routes that need special handling during auth flow
 
@@ -18,15 +18,18 @@ export function middleware(req: NextRequest, res: NextResponse) {
       authRoutes.has(pathname)) {
     return NextResponse.next();
   }
-
+console.log("middleware pathname", pathname);
   // Redirect authenticated users away from auth-only routes (sign-in, sign-up)
+  console.log("middleware authOnlyRoutes", authOnlyRoutes);
   if (authOnlyRoutes.has(pathname) && userToken) {
+    console.log("after signin/signup", authOnlyRoutes.has(pathname), userToken);
     console.log("middleware redirecting authenticated user away from auth page");
-    return NextResponse.redirect(new URL("/", req.url));
+    return NextResponse.next();
   }
 
   // Allow access to public routes (including home page)
   if (publicRoutes.has(pathname)) {
+    console.log("middleware publicRoutes", publicRoutes);
     return NextResponse.next();
   }
 

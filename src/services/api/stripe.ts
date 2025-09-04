@@ -38,6 +38,7 @@ export class StripeService {
    */
   static async redirectToCheckout(planKey: string, userId: string) {
     try {
+      console.log("stripePromise", stripePromise);
       
         console.log('Redirecting to Stripe Checkout for plan:', planKey);
         console.log('User ID:', userId);
@@ -58,8 +59,10 @@ console.log('Plan3:', plan);
       }
 
       // Create checkout session via server API
-      const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
-      const response = await fetch(`${serverUrl}/stripe/create-checkout-session`, {
+      // const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
+      const serverUrl = 'http://localhost:5000';
+      // 
+      const response = await fetch(`${serverUrl}/api/stripe/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,7 +75,6 @@ console.log('Plan3:', plan);
           cancelUrl: `${window.location.origin}/settings?canceled=true`,
         }),
       });
-
       if (!response.ok) {
         const error = await response.text();
         throw new Error(`Failed to create checkout session: ${error}`);
@@ -103,8 +105,18 @@ console.log('Plan3:', plan);
       // 1. Just activate the trial without payment
       // 2. Or collect card info for future billing
       console.log('Stripe Service: Activating Pro Trial for user:', userId);
-      const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
-      const response = await fetch(`${serverUrl}/stripe/activate-trial`, {
+      // const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
+      const serverUrl = 'http://localhost:5000';
+      // const response = await fetch(`${serverUrl}/stripe/activate-trial`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     userId: userId,
+      //   }),
+      // });
+      const response = await fetch(`${serverUrl}/api/stripe/activate-trial`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,8 +145,10 @@ console.log('Plan3:', plan);
    */
   static async getSubscriptionStatus(userId: string) {
     try {
-      const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
-      const response = await fetch(`${serverUrl}/stripe/subscription-status?userId=${userId}`);
+      // const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
+      // const response = await fetch(`${serverUrl}/stripe/subscription-status?userId=${userId}`);
+      const serverUrl = 'http://localhost:5000';
+      const response = await fetch(`${serverUrl}/api/stripe/subscription-status?userId=${userId}`);
       
       if (!response.ok) {
         throw new Error('Failed to get subscription status');

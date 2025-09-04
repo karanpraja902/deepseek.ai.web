@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app/api';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app/api';
+const API_BASE_URL = 'http://localhost:5000';
 
 // Client-side interfaces and types
 export interface UploadedClientFile {
@@ -21,7 +22,7 @@ export const uploadFilesClient = async (files: File[]): Promise<UploadedClientFi
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch(`${API_BASE_URL}/cloudinary/upload`, {
+      const response = await fetch(`${API_BASE_URL}/api/cloudinary/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -32,13 +33,13 @@ export const uploadFilesClient = async (files: File[]): Promise<UploadedClientFi
       }
       
       const result = await response.json();
-      
+      console.log("cloudinary filesClient result:", result);
       return {
-        url: result.data.secure_url,
-        publicId: result.data.public_id,
-        filename: file.name,
-        mediaType: file.type,
-        size: file.size,
+        url: result.data.file.url,
+        publicId: result.data.file.public_id,
+        filename: result.data.file.filename,
+        mediaType: result.data.file.mediaType,
+        size: result.data.file.size,
       } as UploadedClientFile;
     });
     
@@ -51,7 +52,7 @@ export const uploadFilesClient = async (files: File[]): Promise<UploadedClientFi
 
 export const deleteFileFromCloudinary = async (publicId: string): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/cloudinary/${publicId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/cloudinary/${publicId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -75,7 +76,7 @@ export class CloudinaryApiService {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const response = await fetch(`${API_BASE_URL}/cloudinary/upload`, {
+      const response = await fetch(`${API_BASE_URL}/api/cloudinary/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -93,7 +94,7 @@ export class CloudinaryApiService {
 
   static async deleteFile(publicId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/cloudinary/${publicId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/cloudinary/${publicId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +114,7 @@ export class CloudinaryApiService {
 
   static async getFileInfo(publicId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/cloudinary/${publicId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/cloudinary/${publicId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
