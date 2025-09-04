@@ -171,7 +171,7 @@ export class ChatApiService {
 
   static async sendMessage(messages: any[], options?: { signal?: AbortSignal; enableWebSearch?: boolean; userId?: string; model?: string }) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
+      const response = await fetch(`${API_BASE_URL}/api/ai/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
