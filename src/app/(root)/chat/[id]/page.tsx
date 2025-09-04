@@ -2,7 +2,7 @@
 import React from 'react';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import ChatInput from '@/components/chat/ChatInput';
+
 import { AiApiService, AuthApiService, ChatApiService } from '@/services/api';
 import Weather from '@/components/weather/Weather';
 import type { UploadedClientFile } from '@/services/api/cloudinary';
@@ -15,7 +15,7 @@ import Sidebar from '@/components/ui/sidebar';
 import Header from '@/components/ui/header';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { AuthGuard } from '@/components/auth/AuthGuard';
+import ChatInput from '@/components/chat/ChatInput';
 // 
 // Helper function to format base64 image data
 
@@ -153,7 +153,7 @@ useEffect(() => {
 
       const interval = setInterval(() => {
         currentIndex++;
-
+ 
         if (currentIndex < statusMessages.length) {
           const newStatus = statusMessages[currentIndex].main as 'idle' | 'streaming' | 'ready' | 'preparing' | 'generating' | 'connecting' | 'converting' | 'analyzing' | 'searching';
           const newStatusSub = statusMessages[currentIndex].sub;
@@ -165,7 +165,7 @@ useEffect(() => {
           console.log(`${operationType} - Status sequence complete, clearing interval`);
           clearInterval(interval);
         }
-      }, 4000); // Optimized timing for better UX
+      }, 5000); // Optimized timing for better UX
       return () => clearInterval(interval);
     }
   }, [isImageGenerating, isWebSearching, isDocumentAnalyzing, status]);
@@ -1386,7 +1386,6 @@ useEffect(() => {
   console.log("messagesaaaaaaaaaaa:", messages);
 
   return (
-    <AuthGuard>
       <div className="flex h-screen bg-gray-100">
              {/* Sidebar - Always rendered, but shown differently based on screen size */}
         <SubscriptionProvider userId={userId || ''}>
@@ -2147,6 +2146,5 @@ useEffect(() => {
       )}
     </div>
     </div>
-    </AuthGuard>
   );
 }
