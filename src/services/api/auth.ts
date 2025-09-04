@@ -1,5 +1,5 @@
 // const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
 
 export interface AuthUser {
   id: string;
@@ -167,7 +167,7 @@ export class AuthApiService {
     console.log("Initiating Google login - redirecting to backend");
     // Redirect directly to backend Google OAuth endpoint
     // window.location.href = `${API_BASE_URL}/api/auth/google`;
-    window.location.href = `${`http://localhost:5000`}/api/auth/google`;
+    window.location.href = `${API_BASE_URL}/api/auth/google`;
   }
 
 

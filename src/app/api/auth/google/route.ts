@@ -13,25 +13,19 @@ export async function GET(request: NextRequest) {
     console.log("state", state);
     
     if (!code) {
-      // return NextResponse.redirect(`${process.env.NEXT_PUBLIC_CLIENT_URL || 'https://deepseek-ai-client.vercel.app'}/sign-in?error=no_code`);
-      return NextResponse.redirect(` 'http://localhost:3000'}/sign-in?error=no_code`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_CLIENT_URL || 'https://deepseek-ai-web.vercel.app'}/sign-in?error=no_code`);
+ 
     }
   
     // Forward the callback to backend
-    // const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app'}/api/auth/google/callback?code=${code}&state=${state || ''}`, {
-    //   method: 'GET',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    //   credentials: 'include'
-    // });
-    const backendResponse = await fetch(` http://localhost:5000/api/auth/google/callback?code=${code}&state=${state || ''}`, {
+    const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app'}/api/auth/google/callback?code=${code}&state=${state || ''}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
       credentials: 'include'
     });
+   
     
     const data = await backendResponse.json();
     console.log("Backend response:", data);
@@ -47,17 +41,17 @@ export async function GET(request: NextRequest) {
       });
       
       console.log("Cookie set successfully, redirecting to success page");
-      // return NextResponse.redirect(`${process.env.NEXT_PUBLIC_CLIENT_URL || 'https://deepseek-ai-web.vercel.app'}/auth/success?oauth=google`);
-      return NextResponse.redirect(`http://localhost:3000/auth/success?oauth=google`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_CLIENT_URL || 'https://deepseek-ai-web.vercel.app'}/auth/success?oauth=google`);
+
     } else {
       console.error("Backend authentication failed:", data);
-      // return NextResponse.redirect(`${process.env.NEXT_PUBLIC_CLIENT_URL || 'https://deepseek-ai-web.vercel.app'}/sign-in?error=auth_failed`);
-      return NextResponse.redirect(` 'http://localhost:3000'}/sign-in?error=auth_failed`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_CLIENT_URL || 'https://deepseek-ai-web.vercel.app'}/sign-in?error=auth_failed`);
+    
     }
     
   } catch (error) {
     console.error("Google OAuth error:", error);
-    // return NextResponse.redirect(`${process.env.NEXT_PUBLIC_CLIENT_URL || 'https://deepseek-ai-web.vercel.app'}/sign-in?error=oauth_error`);
-    return NextResponse.redirect(` 'http://localhost:5000'}/sign-in?error=oauth_error`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_CLIENT_URL || 'https://deepseek-ai-web.vercel.app'}/sign-in?error=oauth_error`);
+
   }
 }

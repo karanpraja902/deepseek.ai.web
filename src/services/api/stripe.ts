@@ -60,7 +60,7 @@ console.log('Plan3:', plan);
 
       // Create checkout session via server API
       // const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
-      const serverUrl = 'http://localhost:5000';
+      const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
       // 
       const response = await fetch(`${serverUrl}/api/stripe/create-checkout-session`, {
         method: 'POST',
@@ -106,7 +106,8 @@ console.log('Plan3:', plan);
       // 2. Or collect card info for future billing
       console.log('Stripe Service: Activating Pro Trial for user:', userId);
       // const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
-      const serverUrl = 'http://localhost:5000';
+      const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
+
       // const response = await fetch(`${serverUrl}/stripe/activate-trial`, {
       //   method: 'POST',
       //   headers: {
@@ -147,7 +148,9 @@ console.log('Plan3:', plan);
     try {
       // const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
       // const response = await fetch(`${serverUrl}/stripe/subscription-status?userId=${userId}`);
-      const serverUrl = 'http://localhost:5000';
+      
+     const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
+      
       const response = await fetch(`${serverUrl}/api/stripe/subscription-status?userId=${userId}`);
       
       if (!response.ok) {

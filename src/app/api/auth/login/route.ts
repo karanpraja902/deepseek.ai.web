@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     console.log("login route - processing request");
     const { email, password } = await request.json();
 
-    const response = await fetch(`http://localhost:5000/api/auth/login`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app'}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
