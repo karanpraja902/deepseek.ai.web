@@ -8,7 +8,7 @@ import {
   CardHeader,
 } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
-import { AuthApiService } from "../../services/api/auth";
+
 import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";

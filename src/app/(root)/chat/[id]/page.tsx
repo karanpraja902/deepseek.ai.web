@@ -3,7 +3,7 @@ import React from 'react';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 
-import { AiApiService, AuthApiService, ChatApiService } from '@/services/api';
+import { AiApiService, ChatApiService } from '@/services/api';
 import Weather from '@/components/weather/Weather';
 import type { UploadedClientFile } from '@/services/api/cloudinary';
 import { uploadFilesClient } from '@/services/api/cloudinary';
@@ -1219,7 +1219,8 @@ useEffect(() => {
     const initializeUser = async () => {
       try {
         // Initialize static user
-        const initResponse = await AuthApiService.initializeStaticUser();
+        const { AuthClient } = await import('@/lib/auth-client');
+        const initResponse = await AuthClient.initializeStaticUser();
         console.log("initResponse:", initResponse)
         if (initResponse) {
           console.log('Static user initialized');
@@ -1271,15 +1272,16 @@ useEffect(() => {
 
         // Load user profile with memory context (non-blocking)
         if (isUserInitialized) {
-          // Load user profile in background without blocking the chat loading
-          AuthApiService.getUserWithMemory(userId || '')
-            .then((userResponse) => {
+            // Load user profile in background without blocking the chat loading
+          const { AuthClient } = await import('@/lib/auth-client');
+          AuthClient.getUserWithMemory(userId || '')
+            .then((userResponse: any) => {
               console.log("userResponse:", userResponse);
               if (userResponse.success) {
                 setUserProfile(userResponse.memory);
               }
             })
-            .catch((error) => {
+            .catch((error: any) => {
               console.warn('Failed to load user profile (non-critical):', error);
               // This is non-critical, so we don't block the UI
             });
