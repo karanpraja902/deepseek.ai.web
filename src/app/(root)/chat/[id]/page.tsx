@@ -3,19 +3,20 @@ import React from 'react';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 
-import { AiApiService, ChatApiService } from '@/services/api';
-import Weather from '@/components/weather/Weather';
-import type { UploadedClientFile } from '@/services/api/cloudinary';
-import { uploadFilesClient } from '@/services/api/cloudinary';
+import { AiApiService } from '../../../../services/api/ai';
+import Weather from '../../../../components/weather/Weather';
+import type { UploadedClientFile } from '../../../../services/api/cloudinary';
+import { uploadFilesClient } from '../../../../services/api/cloudinary';
 import { toast } from 'react-hot-toast';
 import { Loader2, RefreshCw, Copy, Check, Edit, X, FileText, Download, Eye, StopCircle, Menu } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import Sidebar from '@/components/ui/sidebar';
-import Header from '@/components/ui/header';
-import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
-import { useAuth } from '@/contexts/AuthContext';
-import ChatInput from '@/components/chat/ChatInput';
+import Sidebar from '../../../../components/ui/sidebar';
+import Header from '../../../../components/ui/header';
+import { SubscriptionProvider } from '../../../../contexts/SubscriptionContext';
+import { useAuth } from '../../../../contexts/AuthContext';
+import { useChat } from '../../../../contexts/ChatContext';
+import ChatInput from '../../../../components/chat/ChatInput';
 // 
 // Helper function to format base64 image data
 
@@ -81,8 +82,9 @@ useEffect(() => {
           return;
         }
         
-        const response = await ChatApiService.getChatMessages(chatId);
-        if (response.success && response.data.messages) {
+        const { getChatMessagesAction } = await import('@/lib/chat-actions');
+        const response = await getChatMessagesAction(chatId);
+        if (response.success && response.data?.messages) {
           // Transform database messages to frontend format
           const transformedMessages = response.data.messages.map((msg: any, index: number) => ({
             id: msg._id || `msg-${index}`,
@@ -560,8 +562,9 @@ useEffect(() => {
         streamControllerRef.current = controller;
 
 
-        // Use ChatApiService for streaming request
-        const response = await ChatApiService.sendMessage(apiMessages, {
+        // Use chat actions for streaming request
+        const { sendMessageAction, parseStreamingResponseAction } = await import('@/lib/chat-actions');
+        const response = await sendMessageAction(apiMessages, {
           signal: controller.signal,
           userId: userId || '',
           model: model
@@ -584,7 +587,7 @@ useEffect(() => {
 
         setMessages(prev => [...prev, assistantMessage]);
 
-        // Use ChatApiService to parse streaming response
+        // Use chat actions to parse streaming response
         let accumulatedText = '';
         let updateTimeout: NodeJS.Timeout | null = null;
 
@@ -592,7 +595,7 @@ useEffect(() => {
         let lastUpdateTime = 0;
         let chunkBuffer = '';
 
-        await ChatApiService.parseStreamingResponse(response, (chunk: string) => {
+        await parseStreamingResponseAction(response, (chunk: string) => {
           accumulatedText += chunk;
           chunkBuffer += chunk;
           
@@ -879,16 +882,16 @@ useEffect(() => {
       
       // Only save if we have valid content
       if (content.trim()) {
-      await ChatApiService.addMessage(
-        chatId,
-        message.role,
+        const { addMessageAction } = await import('@/lib/chat-actions');
+        await addMessageAction(
+          chatId,
+          message.role,
           content,
-        message.files,
+          message.files,
           parts,
-        message.metadata
-      );
+          message.metadata
+        );
       } else {
-        
         console.warn('Skipping message save - no valid content found');
       }
     } catch (error) {
@@ -1185,11 +1188,12 @@ useEffect(() => {
         setError(null);
         setStatus('idle');
         
-        // Load the selected chat's messages
-        const response = await ChatApiService.getChat(selectedChatId);
+        // Load the selected chat's messages using chat actions
+        const { getChatAction } = await import('@/lib/chat-actions');
+        const response = await getChatAction(selectedChatId);
         console.log("handleChatSelect response:", response);
         
-        if (response.success && response.data.chat && response.data.chat.messages && response.data.chat.messages.length > 0) {
+        if (response.success && response.data?.chat && response.data.chat.messages && response.data.chat.messages.length > 0) {
           // Transform messages to match UI expectations
           const uiMessages = transformMessagesToUI(response.data.chat.messages);
           console.log("Transformed uiMessages:", uiMessages);
@@ -1219,7 +1223,7 @@ useEffect(() => {
     const initializeUser = async () => {
       try {
         // Initialize static user
-        const { AuthClient } = await import('@/lib/auth-client');
+        const { AuthClient } = await import('../../../../lib/auth-client');
         const initResponse = await AuthClient.initializeStaticUser();
         console.log("initResponse:", initResponse)
         if (initResponse) {
@@ -1247,8 +1251,9 @@ useEffect(() => {
           return;
         }
         
-        // Use the API service instead of direct fetch
-        const response = await ChatApiService.getChat(chatId);
+        // Use chat actions instead of direct fetch
+        const { getChatAction } = await import('@/lib/chat-actions');
+        const response = await getChatAction(chatId);
         console.log('Raw API response:', response);
         
         const existingChat = response?.data?.chat;
@@ -1273,7 +1278,7 @@ useEffect(() => {
         // Load user profile with memory context (non-blocking)
         if (isUserInitialized) {
             // Load user profile in background without blocking the chat loading
-          const { AuthClient } = await import('@/lib/auth-client');
+          const { AuthClient } = await import('../../../../lib/auth-client');
           AuthClient.getUserWithMemory(userId || '')
             .then((userResponse: any) => {
               console.log("userResponse:", userResponse);

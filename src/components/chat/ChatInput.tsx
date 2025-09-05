@@ -1,6 +1,6 @@
 'use client';
 import { uploadFilesClient, deleteFileFromCloudinary, UploadedClientFile } from '@/services/api/cloudinary';
-import { PdfApiService, ChatApiService, AiApiService } from '@/services/api';
+import { PdfApiService, AiApiService } from '@/services/api';
 import type { ModelInfo } from '@/services/api/ai';
 import { getContextStatus } from '@/services/api/context-manager';
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';

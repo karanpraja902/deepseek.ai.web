@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChatApiService } from '@/services/api/chat';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function NewChatPage() {
@@ -17,13 +16,18 @@ export default function NewChatPage() {
 
       try {
         setIsCreatingChat(true);
-        // Use LangChain to load and split the PDF document
-        const response = await ChatApiService.createChat(userId);
+        // Use chat actions to create a new chat
+        const { createChatAction } = await import('@/lib/chat-actions');
+        const response = await createChatAction();
         // create a new chat with user context
         console.log("chatdata:", response.data);
-        console.log("loadid:", response.data.chat.id);
-        const id = response.data.chat.id;
-        router.push(`/chat/${id}`); // redirect to chat page
+        if (response.success && response.data?.chat) {
+          console.log("loadid:", response.data.chat.id);
+          const id = response.data.chat.id;
+          router.push(`/chat/${id}`); // redirect to chat page
+        } else {
+          throw new Error('Failed to create chat: No chat data received');
+        }
       } catch (error) {
         console.error('Failed to create chat:', error);
         // Fallback: redirect to a default chat or show error page

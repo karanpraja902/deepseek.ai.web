@@ -107,8 +107,9 @@ const ChatContainer = React.forwardRef<ChatContainerRef, ChatContainerProps>(({
       const controller = new AbortController();
       streamControllerRef.current = controller;
 
-      // Make streaming request
-      const response = await ChatApiService.sendMessage(apiMessages, {
+      // Make streaming request using chat actions
+      const { sendMessageAction, parseStreamingResponseAction } = await import('@/lib/chat-actions');
+      const response = await sendMessageAction(apiMessages, {
         signal: controller.signal,
         userId: userId
       });
@@ -136,7 +137,7 @@ const ChatContainer = React.forwardRef<ChatContainerRef, ChatContainerProps>(({
       let accumulatedText = '';
       let currentMessages = initialMessages;
 
-      await ChatApiService.parseStreamingResponse(response, (chunk: string) => {
+      await parseStreamingResponseAction(response, (chunk: string) => {
         accumulatedText += chunk;
         
         // Update the assistant message with accumulated text

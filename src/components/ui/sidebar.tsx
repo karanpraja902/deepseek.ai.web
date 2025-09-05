@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useResponsive } from '@/hooks/use-mobile';
-import { ChatApiService } from '@/services/api';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -64,7 +63,9 @@ export default function Sidebar({
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [hoveredChatId, setHoveredChatId] = useState<string | null>(null);
   const [isLoadingChats, setIsLoadingChats] = useState(false);
-  const { isMobile, isTablet, isLaptop, isDesktop, isWide } = useResponsive();
+  const [isDeletingAllChats, setIsDeletingAllChats] = useState(false);
+  const [showDeleteAllConfirmation, setShowDeleteAllConfirmation] = useState(false);
+  const { isMobile, isTablet, isLaptop, isWide } = useResponsive();
 
   const [recentChats, setRecentChats] = useState<any[]>([]);
   // Auto-close sidebar on mobile when selecting a chat
@@ -72,9 +73,10 @@ export default function Sidebar({
     const loadRecentChats = async () => {
       try {
         setIsLoadingChats(true);
-        const response = await ChatApiService.getUserChats(userId);
+        const { getUserChatsAction } = await import('@/lib/chat-actions');
+        const response = await getUserChatsAction();
         if (response.success) {
-          setRecentChats(response.data.chats || []);
+          setRecentChats(response.data?.chats || []);
         }
       } catch (error) {
         console.warn('Failed to load recent chats:', error);
@@ -92,12 +94,13 @@ export default function Sidebar({
 
   const createNewChat = async () => {
     try {
-      const response = await ChatApiService.createChat(userId); 
-      if (response.success && response.data.chat) {
+      const { createChatAction, getUserChatsAction } = await import('@/lib/chat-actions');
+      const response = await createChatAction(); 
+      if (response.success && response.data?.chat) {
         // Refresh the recent chats list
-        const updatedChatsResponse = await ChatApiService.getUserChats(userId);
-        console.log("updatedChatsResponse.data.chats:", updatedChatsResponse.data.chats);
-        setRecentChats(updatedChatsResponse.data.chats || []);
+        const updatedChatsResponse = await getUserChatsAction();
+        console.log("updatedChatsResponse.data.chats:", updatedChatsResponse.data?.chats);
+        setRecentChats(updatedChatsResponse.data?.chats || []);
         
         // Navigate to the new chat
         const newChatId = response.data.chat._id || response.data.chat.id;
@@ -114,8 +117,9 @@ export default function Sidebar({
   };
   const handleDeleteChat = async (chatIdToDelete: string) => {
     try {
-      // Call the delete API
-      await ChatApiService.deleteChat(chatIdToDelete);
+      // Call the delete API using chat actions
+      const { deleteChatAction } = await import('@/lib/chat-actions');
+      await deleteChatAction(chatIdToDelete);
       
       // Remove the chat from the recent chats list
       setRecentChats(prevChats => prevChats.filter(chat => chat.id !== chatIdToDelete));
@@ -130,6 +134,33 @@ export default function Sidebar({
       console.error('Failed to delete chat:', error);
       toast.error('Failed to delete chat');
       throw error; // Re-throw so the sidebar can handle the error state
+    }
+  };
+
+  const handleDeleteAllChats = async () => {
+    try {
+      setIsDeletingAllChats(true);
+      // Call the delete all chats API using chat actions
+      const { deleteAllChatsAction } = await import('@/lib/chat-actions');
+      const response = await deleteAllChatsAction();
+      
+      if (response.success) {
+        // Clear the recent chats list
+        setRecentChats([]);
+        
+        // Redirect to home page
+        window.location.href = '/';
+        
+        toast.success('All chats deleted successfully');
+      } else {
+        throw new Error(response.error || 'Failed to delete all chats');
+      }
+    } catch (error) {
+      console.error('Failed to delete all chats:', error);
+      toast.error('Failed to delete all chats');
+    } finally {
+      setIsDeletingAllChats(false);
+      setShowDeleteAllConfirmation(false);
     }
   };
     const handleChatSelect = async (chatId: string) => {
@@ -243,7 +274,20 @@ export default function Sidebar({
           {/* Recent Chats */}
           <div className="flex-1 overflow-y-auto max-h-[60vh]">
             <div className="p-4 overflow-y-auto">
-              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Recent Chats</h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Recent Chats</h2>
+                {recentChats.length > 0 && (
+                  <button
+                    onClick={() => setShowDeleteAllConfirmation(true)}
+                    disabled={isDeletingAllChats}
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Delete All Chats"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Delete All</span>
+                  </button>
+                )}
+              </div>
               
               {isLoadingChats ? (
                 <div className="flex items-center justify-center py-4">
@@ -354,6 +398,54 @@ export default function Sidebar({
             </div>
           </div>
         </div>
+        
+        {/* Delete All Chats Confirmation Modal for Mobile */}
+        {showDeleteAllConfirmation && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteAllConfirmation(false)}>
+            <div className="bg-gray-800 rounded-lg p-6 max-w-md mx-4 border border-gray-600" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Delete All Chats</h3>
+                  <p className="text-sm text-gray-400">This action cannot be undone</p>
+                </div>
+              </div>
+              
+              <p className="text-gray-300 mb-6">
+                Are you sure you want to delete all {recentChats.length} chat{recentChats.length !== 1 ? 's' : ''}? This will permanently remove all your conversation history.
+              </p>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteAllConfirmation(false)}
+                  className="flex-1 px-4 py-2 text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors"
+                  disabled={isDeletingAllChats}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAllChats}
+                  disabled={isDeletingAllChats}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isDeletingAllChats ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      Delete All
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </>
     );
   }
@@ -416,7 +508,22 @@ export default function Sidebar({
       {/* Recent Chats */}
       <div className="flex-1 overflow-y-auto h-full max-h-[60vh]">
         <div className="p-4">
-          {isOpen && <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Recent Chats</h2>}
+          {isOpen && (
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Recent Chats</h2>
+              {recentChats.length > 0 && (
+                <button
+                  onClick={() => setShowDeleteAllConfirmation(true)}
+                  disabled={isDeletingAllChats}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Delete All Chats"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Delete All</span>
+                </button>
+              )}
+            </div>
+          )}
           
           {isLoadingChats && isOpen ? (
             <div className="flex items-center justify-center py-4">
@@ -478,9 +585,8 @@ export default function Sidebar({
         </div>
       </div>
 
-
-
-        {/* User section */}
+      {/* User section */}
+      <div className="p-4 border-t border-gray-600">
         <div className="relative text-gray-100">
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -533,5 +639,54 @@ export default function Sidebar({
           )}
         </div>
       </div>
+      
+      {/* Delete All Chats Confirmation Modal */}
+      {showDeleteAllConfirmation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteAllConfirmation(false)}>
+          <div className="bg-gray-800 rounded-lg p-6 max-w-md mx-4 border border-gray-600" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Delete All Chats</h3>
+                <p className="text-sm text-gray-400">This action cannot be undone</p>
+              </div>
+            </div>
+            
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete all {recentChats.length} chat{recentChats.length !== 1 ? 's' : ''}? This will permanently remove all your conversation history.
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteAllConfirmation(false)}
+                className="flex-1 px-4 py-2 text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors"
+                disabled={isDeletingAllChats}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAllChats}
+                disabled={isDeletingAllChats}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isDeletingAllChats ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete All
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
