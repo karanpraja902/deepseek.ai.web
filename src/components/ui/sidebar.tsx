@@ -23,6 +23,8 @@ import { toast } from 'react-hot-toast';
 import { useResponsive } from '@/hooks/use-mobile';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { createChatAction, getUserChatsAction } from '@/lib/chat-actions';
+import { useChat } from '@/contexts/ChatContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -32,7 +34,6 @@ interface SidebarProps {
   onChatSelect: (chatId: string) => void;
   onModelChange: (model: string) => void;
   currentModel: string;
-  userId: string;
   isUserInitialized?: boolean;
   
 }
@@ -45,13 +46,12 @@ export default function Sidebar({
   onChatSelect,
   onModelChange,
   currentModel,
-  userId,
   isUserInitialized,
 }: SidebarProps) {
   const router = useRouter();
   const { subscription, isLoading } = useSubscription();
-  const { logout } = useAuth();
-  
+  const { logout, user } = useAuth();
+  const { deleteChat } = useChat();
   // Get current plan display name
   const getCurrentPlanName = () => {
     if (isLoading) return 'Loading...';
@@ -90,11 +90,11 @@ export default function Sidebar({
     if (isUserInitialized) {
       loadRecentChats();
     }
-  }, [isUserInitialized, userId]);
+  }, [isUserInitialized, user?.id]);
 
   const createNewChat = async () => {
     try {
-      const { createChatAction, getUserChatsAction } = await import('@/lib/chat-actions');
+   
       const response = await createChatAction(); 
       if (response.success && response.data?.chat) {
         // Refresh the recent chats list
@@ -115,20 +115,16 @@ export default function Sidebar({
       toast.error('Failed to create new chat');
     }
   };
+
   const handleDeleteChat = async (chatIdToDelete: string) => {
     try {
-      // Call the delete API using chat actions
-      const { deleteChatAction } = await import('@/lib/chat-actions');
-      await deleteChatAction(chatIdToDelete);
+      await deleteChat(chatIdToDelete);
       
       // Remove the chat from the recent chats list
       setRecentChats(prevChats => prevChats.filter(chat => chat.id !== chatIdToDelete));
       
       // If the current chat is being deleted, redirect to home
-      if (chatIdToDelete === currentChatId) {
-        window.location.href = '/';
-      }
-      
+  
       toast.success('Chat deleted successfully');
     } catch (error) {
       console.error('Failed to delete chat:', error);
@@ -148,8 +144,7 @@ export default function Sidebar({
         // Clear the recent chats list
         setRecentChats([]);
         
-        // Redirect to home page
-        window.location.href = '/';
+
         
         toast.success('All chats deleted successfully');
       } else {
@@ -353,11 +348,19 @@ export default function Sidebar({
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="w-full flex items-center gap-3 p-3 rounded-md hover:bg-gray-700 text-gray-300"
               >
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden">
+                  {user?.avatar ? (
+                    <img 
+                      src={user.avatar} 
+                      alt={user.name || 'User'} 
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  ) : (
+                    <User className="w-5 h-5 text-white" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate text-sm">{userId}</p>
+                  <p className="font-medium truncate text-sm">{user?.name || user?.email || 'User'}</p>
                   <p className="text-gray-400 truncate text-xs">{getCurrentPlanName()}</p>
                 </div>
               </button>
@@ -365,7 +368,7 @@ export default function Sidebar({
               {userMenuOpen && (
                 <div className="absolute bottom-full left-0 mb-1 w-48 bg-gray-800 rounded-md shadow-lg border border-gray-600 py-1 z-10">
                   <div className="px-4 py-2 border-b border-gray-600">
-                    <p className="text-sm font-medium text-gray-300">{userId}</p>
+                    <p className="text-sm font-medium text-gray-300">{user?.name || user?.email || 'User'}</p>
                     <p className="text-xs text-gray-400">{getCurrentPlanName()}</p>
                   </div>
                   <div className="py-1">
@@ -506,7 +509,7 @@ export default function Sidebar({
       )}
 
       {/* Recent Chats */}
-      <div className="flex-1 overflow-y-auto h-full max-h-[60vh]">
+      <div className="flex-1 overflow-y-auto h-full max-h-[50vh]">
         <div className="p-4">
           {isOpen && (
             <div className="flex items-center justify-between mb-2">
@@ -592,12 +595,20 @@ export default function Sidebar({
             onClick={() => setUserMenuOpen(!userMenuOpen)}
             className="w-full flex items-center gap-3 p-2 rounded-md  hover:bg-gray-500 hover:text-gray-100"
           >
-           {isOpen&& <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center ">
-              <User className="w-5 h-5 text-blue-600" />
+           {isOpen&& <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+              {user?.avatar ? (
+                <img 
+                  src={user.avatar} 
+                  alt={user.name || 'User'} 
+                  className="w-full h-full object-cover rounded-full"
+                />
+              ) : (
+                <User className="w-5 h-5 text-blue-600" />
+              )}
             </div>}
             {isOpen && (
               <div className="flex-1 min-w-0 hover:text-gray-100">
-                <p className={`font-medium truncate ${isTablet ? 'text-xs' : 'text-sm'}`}>{userId}</p>
+                <p className={`font-medium truncate ${isTablet ? 'text-xs' : 'text-sm'}`}>{user?.name || user?.email || 'User'}</p>
                 <p className={`text-gray-100 truncate  ${isTablet ? 'text-xs' : 'text-xs'}`}>{getCurrentPlanName()}</p>
               </div>
             )}
@@ -606,7 +617,7 @@ export default function Sidebar({
           {userMenuOpen && isOpen && (
             <div className="absolute bottom-full left-0 mb-1 w-48 bg-gray-800 rounded-md shadow-lg border border-gray-500 py-1 z-10">
               <div className="px-4 py-2 border-b border-gray-500">
-                <p className="text-sm font-medium">{userId}</p>
+                <p className="text-sm font-medium">{user?.name || user?.email || 'User'}</p>
                 <p className="text-xs text-gray-500">{getCurrentPlanName()}</p>
               </div>
               <div className="py-1">

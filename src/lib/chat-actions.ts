@@ -64,6 +64,7 @@ export async function createChatAction(): Promise<ChatResponse> {
   try {
     console.log("createChatAction");
     const headers = await getAuthHeaders();
+    console.log("createChatAction headers:", headers);
     
     const response = await fetch(`${API_BASE_URL}/api/chat`, {
       method: 'POST',
@@ -77,6 +78,7 @@ export async function createChatAction(): Promise<ChatResponse> {
       throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
     }
 
+    console.log("createChatAction response:", response);
     return await response.json();
   } catch (error) {
     console.error('Create chat error:', error);

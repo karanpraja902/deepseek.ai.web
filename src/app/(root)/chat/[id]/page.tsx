@@ -15,7 +15,7 @@ import Sidebar from '../../../../components/ui/sidebar';
 import Header from '../../../../components/ui/header';
 import { SubscriptionProvider } from '../../../../contexts/SubscriptionContext';
 import { useAuth } from '../../../../contexts/AuthContext';
-import { useChat } from '../../../../contexts/ChatContext';
+import { useChat, ChatProvider } from '../../../../contexts/ChatContext';
 import ChatInput from '../../../../components/chat/ChatInput';
 // 
 // Helper function to format base64 image data
@@ -1396,17 +1396,18 @@ useEffect(() => {
       <div className="flex h-screen bg-gray-100">
              {/* Sidebar - Always rendered, but shown differently based on screen size */}
         <SubscriptionProvider userId={userId || ''}>
-          <Sidebar
-          setChatId={setChatId}
-           isOpen={sidebarOpen}
-           onToggle={toggleSidebar}
-           isUserInitialized={isUserInitialized}
-           currentChatId={chatId as string}
-           onChatSelect={handleChatSelect}
-           onModelChange={handleModelChange}
-           currentModel={model}
-           userId={userId || ''}
-         />
+          <ChatProvider>
+            <Sidebar
+            setChatId={setChatId}
+             isOpen={sidebarOpen}
+             onToggle={toggleSidebar}
+             isUserInitialized={isUserInitialized}
+             currentChatId={chatId as string}
+             onChatSelect={handleChatSelect}
+             onModelChange={handleModelChange}
+             currentModel={model}
+           />
+          </ChatProvider>
         </SubscriptionProvider>
 
       {/* Main content */}
@@ -2067,19 +2068,21 @@ useEffect(() => {
         {/* Input Form - Always fixed at bottom */}
         
         <SubscriptionProvider userId={userId || ''}>
-          <ChatInput
-            input={input}
-            setInput={setInput}
-            files={files}
-            setUploadedFiles={setUploadedFiles}
-            sendMessage={sendMessageWithUser}
-            status={status}
-            onStop={stop}
-            chatId={chatId as string}
-            messages={messages}
-            setModel={setModel}
-            model={model}
-          />
+          <ChatProvider>
+            <ChatInput
+              input={input}
+              setInput={setInput}
+              files={files}
+              setUploadedFiles={setUploadedFiles}
+              sendMessage={sendMessageWithUser}
+              status={status}
+              onStop={stop}
+              chatId={chatId as string}
+              messages={messages}
+              setModel={setModel}
+              model={model}
+            />
+          </ChatProvider>
         </SubscriptionProvider>
         </div>
 

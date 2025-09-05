@@ -3,70 +3,37 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Check, Crown, Zap, Star, Settings, User, Bell, Shield, CreditCard, ArrowLeft, Loader2, Mail, Calendar, Clock } from 'lucide-react';
-import { AppSidebar } from '@/components/app-sidebar';
 import { StripeService } from '@/services/api/stripe';
 import { UserApiService } from '@/services/api/user';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface UserProfile {
-  id: string;
-  email: string;
-  username: string;
-  name: string;
-  avatar: string;
-  preferences: {
-    theme: 'light' | 'dark';
-    language: string;
-    aiModel: string;
-    conversationStyle: 'formal' | 'casual' | 'technical';
-    topics: string[];
-  };
-  subscription?: {
-    plan: string;
-    status: string;
-    subscribedAt: Date;
-    currentPeriodEnd?: Date;
-    trialEnd?: Date;
-  };
-  createdAt: Date;
-  lastActive: Date;
-}
 
 interface SubscriptionStatus {
   plan: string;
   status: string;
   currentPeriodEnd?: string;
   trialEnd?: string;
+  subscribedAt?: string;
   daysLeft?: number;
 }
 
 const SettingsPageContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, userId, isLoading: authLoading } = useAuth();
+  const { user, userId, isLoading: authLoading, refreshUser } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState('overview');
-  
   // Use the actual logged-in user ID instead of static ID
   const currentUserId = userId;
+  console.log("settings page user:", user);
 
-  // Function to refresh user data
-  const refreshUserData = async () => {
+  // Function to refresh subscription data only (user profile comes from AuthContext)
+  const refreshSubscriptionData = async () => {
     try {
-      // Fetch user profile
-      if (currentUserId) {
-        const profileResponse = await UserApiService.getUserProfile(currentUserId);
-        if (profileResponse.success && profileResponse.data?.user) {
-          console.log('User profile refreshed:', profileResponse.data.user);
-          setUserProfile(profileResponse.data.user);
-        }
-      }
-
       // Fetch subscription status
       if (currentUserId) {
         const subscriptionResponse = await StripeService.getSubscriptionStatus(currentUserId);
@@ -76,28 +43,32 @@ const SettingsPageContent = () => {
         }
       }
     } catch (err: any) {
-      console.error('Failed to refresh user data:', err);
+      console.error('Failed to refresh subscription data:', err);
     }
   };
 
-  // Fetch user profile and subscription status
+  // Fetch subscription status only (user profile comes from AuthContext)
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchSubscriptionData = async () => {
       try {
         setLoading(true);
         setError(null);
-        await refreshUserData();
+        await refreshSubscriptionData();
       } catch (err: any) {
-        console.error('Failed to fetch user data:', err);
-        setError(err.message || 'Failed to load user profile');
-        toast.error('Failed to load user profile');
+        console.error('Failed to fetch subscription data:', err);
+        setError(err.message || 'Failed to load subscription data');
+        toast.error('Failed to load subscription data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUserData();
-  }, []);
+    if (currentUserId) {
+      fetchSubscriptionData();
+    } else {
+      setLoading(false);
+    }
+  }, [currentUserId]);
 
   // Handle success/cancel URL parameters
   useEffect(() => {
@@ -138,8 +109,8 @@ const SettingsPageContent = () => {
           if (subscriptionData && currentUserId) {
             await UserApiService.updateUserSubscription(currentUserId, subscriptionData);
             
-            // Refresh user data to show updated subscription
-            await refreshUserData();
+            // Refresh subscription data to show updated subscription
+            await refreshSubscriptionData();
           }
         } catch (error) {
           console.error('Failed to update subscription after successful payment:', error);
@@ -192,11 +163,8 @@ const SettingsPageContent = () => {
             });
             console.log('Pro Trial subscription updated:', currentUserId, planName);
             
-            // Refresh user data
-            const profileResponse = await UserApiService.getUserProfile(currentUserId);
-            if (profileResponse.success && profileResponse.data?.user) {
-              setUserProfile(profileResponse.data.user);
-            }
+            // Refresh subscription data
+            await refreshSubscriptionData();
             
            
           }
@@ -229,15 +197,15 @@ const SettingsPageContent = () => {
 
   // Calculate days left in trial or subscription
   const getDaysLeft = () => {
-    if (userProfile?.subscription?.trialEnd) {
-      const trialEnd = new Date(userProfile.subscription.trialEnd);
+    if (subscriptionStatus?.trialEnd) {
+      const trialEnd = new Date(subscriptionStatus.trialEnd);
       const now = new Date();
       const diffTime = trialEnd.getTime() - now.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       return Math.max(0, diffDays);
     }
-    if (userProfile?.subscription?.currentPeriodEnd) {
-      const periodEnd = new Date(userProfile.subscription.currentPeriodEnd);
+    if (subscriptionStatus?.currentPeriodEnd) {
+      const periodEnd = new Date(subscriptionStatus.currentPeriodEnd);
       const now = new Date();
       const diffTime = periodEnd.getTime() - now.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -246,18 +214,18 @@ const SettingsPageContent = () => {
     return 0;
   };
 
-  // Get current plan name from user profile
+  // Get current plan name from subscription status
   const getCurrentPlan = () => {
-    if (userProfile?.subscription?.plan) {
-      return userProfile.subscription.plan;
+    if (subscriptionStatus?.plan) {
+      return subscriptionStatus.plan;
     }
     return "Free"; // Default fallback
   };
 
   // Get current plan status
   const getCurrentPlanStatus = () => {
-    if (userProfile?.subscription?.status) {
-      return userProfile.subscription.status;
+    if (subscriptionStatus?.status) {
+      return subscriptionStatus.status;
     }
     return "inactive";
   };
@@ -269,8 +237,8 @@ const SettingsPageContent = () => {
       daysLeft: getCurrentPlan() === "Pro Trial" ? getDaysLeft() : undefined,
       price: "Free",
       description: "limited access to most features, 14 days free trial",
-      note: getCurrentPlan() === "Pro Trial" && userProfile?.subscription?.trialEnd 
-        ? `Your trial ends on ${new Date(userProfile.subscription.trialEnd).toLocaleDateString()}.` 
+      note: getCurrentPlan() === "Pro Trial" && subscriptionStatus?.trialEnd 
+        ? `Your trial ends on ${new Date(subscriptionStatus.trialEnd).toLocaleDateString()}.` 
         : getCurrentPlan() === "Pro+" || getCurrentPlan() === "Ultra"
         ? "You already have a higher-tier plan"
         : "Your subscription will start on September 14th.",
@@ -297,8 +265,8 @@ const SettingsPageContent = () => {
       daysLeft: getCurrentPlan() === "Pro+" ? getDaysLeft() : undefined,
       price: "$20/month",
       description: "Access to all features, image generation, and deepresearch",
-      note: getCurrentPlan() === "Pro+" && userProfile?.subscription?.currentPeriodEnd 
-        ? `Your subscription renews on ${new Date(userProfile.subscription.currentPeriodEnd).toLocaleDateString()}.` 
+      note: getCurrentPlan() === "Pro+" && subscriptionStatus?.currentPeriodEnd 
+        ? `Your subscription renews on ${new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}.` 
         : undefined,
       features: [
         "Access to all features",
@@ -320,8 +288,8 @@ const SettingsPageContent = () => {
       daysLeft: getCurrentPlan() === "Ultra" ? getDaysLeft() : undefined,
       price: "$40/month",
       description: "20x higher limits for OpenAI, Claude, Gemini, Grok models, and early access to advanced features.",
-      note: getCurrentPlan() === "Ultra" && userProfile?.subscription?.currentPeriodEnd 
-        ? `Your subscription renews on ${new Date(userProfile.subscription.currentPeriodEnd).toLocaleDateString()}.` 
+      note: getCurrentPlan() === "Ultra" && subscriptionStatus?.currentPeriodEnd 
+        ? `Your subscription renews on ${new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}.` 
         : undefined,
       features: [
         "20x higher limits",
@@ -426,14 +394,14 @@ const SettingsPageContent = () => {
                   {/* User Profile Section */}
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                      {userProfile?.avatar ? (
-                        <img src={userProfile.avatar} alt={userProfile.name} className="w-12 h-12 rounded-full" />
+                      {user?.avatar ? (
+                        <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full" />
                       ) : (
-                        userProfile?.name?.charAt(0)?.toUpperCase() || 'U'
+                        user?.name?.charAt(0)?.toUpperCase() || 'U'
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">{userProfile?.name || 'User'}</p>
+                      <p className="font-semibold text-sm truncate">{user?.name || 'User'}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{getCurrentPlan()}</p>
                     </div>
                   </div>
@@ -442,20 +410,20 @@ const SettingsPageContent = () => {
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
                       <Mail className="w-3 h-3" />
-                      <span className="truncate">{userProfile?.email || 'No email'}</span>
+                      <span className="truncate">{user?.email || 'No email'}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
                       <Calendar className="w-3 h-3" />
-                      <span>Member since {userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : 'Unknown'}</span>
+                      <span>Member since Unknown</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
                       <Clock className="w-3 h-3" />
-                      <span>Last active {userProfile?.lastActive ? new Date(userProfile.lastActive).toLocaleDateString() : 'Unknown'}</span>
+                      <span>Last active Unknown</span>
                     </div>
                   </div>
 
                   {/* Current Plan Status */}
-                  {userProfile?.subscription && (
+                  {subscriptionStatus && (
                     <div className={`rounded-lg p-3 mb-4 border ${
                       getCurrentPlanStatus() === 'trial' 
                         ? 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800' 
@@ -509,15 +477,15 @@ const SettingsPageContent = () => {
                           <div className="space-y-3">
                             <div>
                               <label className="text-sm text-gray-500 dark:text-gray-400">Full Name</label>
-                              <p className="text-gray-900 dark:text-gray-100">{userProfile?.name || 'Not set'}</p>
+                              <p className="text-gray-900 dark:text-gray-100">{user?.name || 'Not set'}</p>
                             </div>
                             <div>
                               <label className="text-sm text-gray-500 dark:text-gray-400">Email</label>
-                              <p className="text-gray-900 dark:text-gray-100">{userProfile?.email || 'Not set'}</p>
+                              <p className="text-gray-900 dark:text-gray-100">{user?.email || 'Not set'}</p>
                             </div>
                             <div>
                               <label className="text-sm text-gray-500 dark:text-gray-400">Username</label>
-                              <p className="text-gray-900 dark:text-gray-100">{userProfile?.username || 'Not set'}</p>
+                              <p className="text-gray-900 dark:text-gray-100">{user?.username || 'Not set'}</p>
                             </div>
                           </div>
                         </div>
@@ -526,26 +494,26 @@ const SettingsPageContent = () => {
                           <div className="space-y-3">
                             <div>
                               <label className="text-sm text-gray-500 dark:text-gray-400">Theme</label>
-                              <p className="text-gray-900 dark:text-gray-100 capitalize">{userProfile?.preferences?.theme || 'Not set'}</p>
+                              <p className="text-gray-900 dark:text-gray-100 capitalize">{user?.preferences?.theme || 'Not set'}</p>
                             </div>
                             <div>
                               <label className="text-sm text-gray-500 dark:text-gray-400">Language</label>
-                              <p className="text-gray-900 dark:text-gray-100">{userProfile?.preferences?.language || 'Not set'}</p>
+                              <p className="text-gray-900 dark:text-gray-100">{user?.preferences?.language || 'Not set'}</p>
                             </div>
                             <div>
                               <label className="text-sm text-gray-500 dark:text-gray-400">AI Model</label>
-                              <p className="text-gray-900 dark:text-gray-100">{userProfile?.preferences?.aiModel || 'Not set'}</p>
+                              <p className="text-gray-900 dark:text-gray-100">{user?.preferences?.aiModel || 'Not set'}</p>
                             </div>
                             <div>
                               <label className="text-sm text-gray-500 dark:text-gray-400">Conversation Style</label>
-                              <p className="text-gray-900 dark:text-gray-100 capitalize">{userProfile?.preferences?.conversationStyle || 'Not set'}</p>
+                              <p className="text-gray-900 dark:text-gray-100 capitalize">{user?.preferences?.conversationStyle || 'Not set'}</p>
                             </div>
                           </div>
                         </div>
                       </div>
                       
                       {/* Subscription Information */}
-                      {userProfile?.subscription && (
+                      {subscriptionStatus && (
                         <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                           <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Subscription Information</h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -553,11 +521,11 @@ const SettingsPageContent = () => {
                               <div className="space-y-3">
                                 <div>
                                   <label className="text-sm text-gray-500 dark:text-gray-400">Current Plan</label>
-                                  <p className="text-gray-900 dark:text-gray-100 font-medium">{userProfile.subscription.plan}</p>
+                                  <p className="text-gray-900 dark:text-gray-100 font-medium">{subscriptionStatus.plan}</p>
                                 </div>
                                 <div>
                                   <label className="text-sm text-gray-500 dark:text-gray-400">Status</label>
-                                  <p className="text-gray-900 dark:text-gray-100 capitalize">{userProfile.subscription.status}</p>
+                                  <p className="text-gray-900 dark:text-gray-100 capitalize">{subscriptionStatus.status}</p>
                                 </div>
                               </div>
                             </div>
@@ -566,14 +534,14 @@ const SettingsPageContent = () => {
                                 <div>
                                   <label className="text-sm text-gray-500 dark:text-gray-400">Subscribed On</label>
                                   <p className="text-gray-900 dark:text-gray-100">
-                                    {userProfile.subscription.subscribedAt ? new Date(userProfile.subscription.subscribedAt).toLocaleDateString() : 'Not available'}
+                                    {subscriptionStatus.subscribedAt ? new Date(subscriptionStatus.subscribedAt).toLocaleDateString() : 'Not available'}
                                   </p>
                                 </div>
-                                {userProfile.subscription.trialEnd && (
+                                {subscriptionStatus.trialEnd && (
                                   <div>
                                     <label className="text-sm text-gray-500 dark:text-gray-400">Trial Ends</label>
                                     <p className="text-gray-900 dark:text-gray-100">
-                                      {new Date(userProfile.subscription.trialEnd).toLocaleDateString()}
+                                      {new Date(subscriptionStatus.trialEnd).toLocaleDateString()}
                                     </p>
                                   </div>
                                 )}
@@ -603,7 +571,10 @@ const SettingsPageContent = () => {
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-xl font-semibold">Subscriptions</h2>
                       <button
-                        onClick={refreshUserData}
+                        onClick={async () => {
+                          await refreshUser();
+                          await refreshSubscriptionData();
+                        }}
                         className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -614,15 +585,15 @@ const SettingsPageContent = () => {
                     </div>
                     
                     {/* Current Plan Summary */}
-                    {userProfile?.subscription && (
+                    {subscriptionStatus && (
                       <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border border-blue-200 dark:border-blue-800 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div>
                             <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
-                              Current Plan: {userProfile.subscription.plan}
+                              Current Plan: {subscriptionStatus.plan}
                             </h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                              Status: <span className="capitalize font-medium">{userProfile.subscription.status}</span>
+                              Status: <span className="capitalize font-medium">{subscriptionStatus.status}</span>
                               {getDaysLeft() > 0 && (
                                 <span className="ml-2">
                                   • {getDaysLeft()} days remaining
@@ -632,16 +603,16 @@ const SettingsPageContent = () => {
                           </div>
                           <div className="text-right">
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                              Subscribed on {userProfile.subscription.subscribedAt ? new Date(userProfile.subscription.subscribedAt).toLocaleDateString() : 'Unknown'}
+                              Subscribed on {subscriptionStatus.subscribedAt ? new Date(subscriptionStatus.subscribedAt).toLocaleDateString() : 'Unknown'}
                             </p>
-                            {userProfile.subscription.trialEnd && (
+                            {subscriptionStatus.trialEnd && (
                               <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                                Trial ends: {new Date(userProfile.subscription.trialEnd).toLocaleDateString()}
+                                Trial ends: {new Date(subscriptionStatus.trialEnd).toLocaleDateString()}
                               </p>
                             )}
-                            {userProfile.subscription.currentPeriodEnd && (
+                            {subscriptionStatus.currentPeriodEnd && (
                               <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-                                Renews: {new Date(userProfile.subscription.currentPeriodEnd).toLocaleDateString()}
+                                Renews: {new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}
                               </p>
                             )}
                           </div>
