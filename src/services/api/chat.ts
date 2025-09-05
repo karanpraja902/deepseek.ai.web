@@ -6,7 +6,7 @@ export class ChatApiService {
   static async createChat(userId: string) {
     console.log("CreateChat:",userId)
     try {
-      const response = await fetch(`${API_BASE_URL}/api/chat/create`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,7 +50,7 @@ export class ChatApiService {
 
   static async getUserChats(userId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/chat/all?userId=${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat?userId=${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
