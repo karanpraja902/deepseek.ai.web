@@ -11,7 +11,7 @@ export class ChatApiService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({}), // Empty body since userId comes from auth
         credentials: 'include',
       });
       console.log("CreateResponseId:",response)
