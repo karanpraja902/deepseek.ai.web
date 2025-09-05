@@ -91,8 +91,9 @@ export async function createChatAction(): Promise<ChatResponse> {
 
 export async function getChatAction(chatId: string): Promise<ChatResponse> {
   try {
+    console.log("getChatAction chatId:", {chatId:chatId});
     const headers = await getAuthHeaders();
-    
+    console.log("getChatAction headers:", headers);
     const response = await fetch(`${API_BASE_URL}/api/chat/${chatId}`, {
       method: 'GET',
       headers,
@@ -148,6 +149,8 @@ export async function addMessageAction(
   metadata?: any
 ): Promise<ChatResponse> {
   try {
+    console.log("addMessageAction");
+    console.log("addMessageAction chatId:", {chatId:chatId}, {role:role}, {content:content}, {files:files}, {parts:parts}, {metadata:metadata});
     const headers = await getAuthHeaders();
     
     const messageData = { 
@@ -157,14 +160,14 @@ export async function addMessageAction(
       parts: parts || [], 
       metadata: metadata || {} 
     };
-
+    console.log("addMessageAction messageData:", messageData);
     const response = await fetch(`${API_BASE_URL}/api/chat/${chatId}/messages`, {
       method: 'POST',
       headers,
       credentials: 'include',
       body: JSON.stringify(messageData),
     });
-
+    console.log("addMessageAction response:", response);
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
@@ -234,8 +237,9 @@ export async function deleteChatAction(chatId: string): Promise<ChatResponse> {
 
 export async function getChatMessagesAction(chatId: string): Promise<ChatResponse> {
   try {
+    console.log("getChatMessagesAction chatId:", {chatId:chatId});
     const headers = await getAuthHeaders();
-    
+    console.log("getChatMessagesAction headers:", headers);
     const response = await fetch(`${API_BASE_URL}/api/chat/${chatId}/messages`, {
       method: 'GET',
       headers,

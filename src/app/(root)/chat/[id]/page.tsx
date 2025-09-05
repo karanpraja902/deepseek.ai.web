@@ -3,20 +3,22 @@ import React from 'react';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 
-import { AiApiService } from '../../../../services/api/ai';
-import Weather from '../../../../components/weather/Weather';
-import type { UploadedClientFile } from '../../../../services/api/cloudinary';
-import { uploadFilesClient } from '../../../../services/api/cloudinary';
+import { AiApiService } from '@/services/api';
+import { ChatApiService } from '@/services/api/chat';
+import Weather from '@/components/weather/Weather';
+import type { UploadedClientFile } from '@/services/api/cloudinary';
+import { uploadFilesClient } from '@/services/api/cloudinary';
 import { toast } from 'react-hot-toast';
 import { Loader2, RefreshCw, Copy, Check, Edit, X, FileText, Download, Eye, StopCircle, Menu } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import Sidebar from '../../../../components/ui/sidebar';
-import Header from '../../../../components/ui/header';
-import { SubscriptionProvider } from '../../../../contexts/SubscriptionContext';
-import { useAuth } from '../../../../contexts/AuthContext';
-import { useChat, ChatProvider } from '../../../../contexts/ChatContext';
-import ChatInput from '../../../../components/chat/ChatInput';
+import Sidebar from '@/components/ui/sidebar';
+import Header from '@/components/ui/header';
+import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
+import { useAuth } from '@/contexts/AuthContext';
+import ChatInput from '@/components/chat/ChatInput';
+import { ChatProvider } from '@/contexts/ChatContext';
+import { addMessageAction, getChatAction, getChatMessagesAction } from '@/lib/chat-actions';
 // 
 // Helper function to format base64 image data
 
@@ -82,11 +84,10 @@ useEffect(() => {
           return;
         }
         
-        const { getChatMessagesAction } = await import('@/lib/chat-actions');
         const response = await getChatMessagesAction(chatId);
         if (response.success && response.data?.messages) {
           // Transform database messages to frontend format
-          const transformedMessages = response.data.messages.map((msg: any, index: number) => ({
+          const transformedMessages = response.data?.messages.map((msg: any, index: number) => ({
             id: msg._id || `msg-${index}`,
             role: msg.role,
             content: msg.content,
@@ -545,12 +546,14 @@ useEffect(() => {
         // setMessages(prev => [...prev, userMessage]);
 
         console.log("normal message handling:", messages)
+        console.log("normaluserMessage:", userMessage)
         // Normal message handling (non-image generation, non-web search, non-document analysis)
         // Prepare assistant message ID (but don't add to messages yet)
         const assistantMessageId = (Date.now() + 1).toString();
 
         // Prepare messages for API (include both text and file parts)
         const currentMessages = [...messages, userMessage];
+        console.log("normal currentMessages:", currentMessages)
         const apiMessages = currentMessages.map(msg => ({
           role: msg.role,
           content: msg.parts?.find((part: any) => part.type === 'text')?.text || msg.content || '',
@@ -562,9 +565,8 @@ useEffect(() => {
         streamControllerRef.current = controller;
 
 
-        // Use chat actions for streaming request
-        const { sendMessageAction, parseStreamingResponseAction } = await import('@/lib/chat-actions');
-        const response = await sendMessageAction(apiMessages, {
+        // Use ChatApiService for streaming request
+        const response = await ChatApiService.sendMessage(apiMessages, {
           signal: controller.signal,
           userId: userId || '',
           model: model
@@ -587,7 +589,7 @@ useEffect(() => {
 
         setMessages(prev => [...prev, assistantMessage]);
 
-        // Use chat actions to parse streaming response
+        // Use ChatApiService to parse streaming response
         let accumulatedText = '';
         let updateTimeout: NodeJS.Timeout | null = null;
 
@@ -595,7 +597,7 @@ useEffect(() => {
         let lastUpdateTime = 0;
         let chunkBuffer = '';
 
-        await parseStreamingResponseAction(response, (chunk: string) => {
+        await ChatApiService.parseStreamingResponse(response, (chunk: string) => {
           accumulatedText += chunk;
           chunkBuffer += chunk;
           
@@ -659,6 +661,7 @@ useEffect(() => {
             parts: [{ type: 'text', text: accumulatedText }],
             createdAt: new Date()
           };
+          console.log("messages just before saving:", messages)
           await saveMessage(chatId as string, userMessage);
           await saveMessage(chatId as string, finalAssistantMessage);
         } catch (error) {
@@ -869,7 +872,7 @@ useEffect(() => {
   // Save message function for persistence
   const saveMessage = async (chatId: string, message: any) => {
     try {
-      console.log("saveMessage:", chatId, message);
+      console.log("saveMessage:", {chatId:chatId}, {message:message});
       // Ensure we have valid content before saving
       let content = message.content || '';
       let parts = message.parts || [];
@@ -879,19 +882,20 @@ useEffect(() => {
         const textPart = parts.find((part: any) => part.type === 'text' && part.text);
         content = textPart?.text || '';
       }
+      console.log("saveMessage content:", content)
       
       // Only save if we have valid content
       if (content.trim()) {
-        const { addMessageAction } = await import('@/lib/chat-actions');
-        await addMessageAction(
-          chatId,
-          message.role,
+      await addMessageAction(
+        chatId,
+        message.role,
           content,
-          message.files,
+        message.files,
           parts,
-          message.metadata
-        );
+        message.metadata
+      );
       } else {
+        
         console.warn('Skipping message save - no valid content found');
       }
     } catch (error) {
@@ -1174,6 +1178,7 @@ useEffect(() => {
 
 
   const handleChatSelect = async (selectedChatId: string) => {
+    setError(null);
     console.log("handleChatSelect selectedChatId:", selectedChatId);
     const newUrl = `/chat/${selectedChatId}`;
     console.log("handleChatSelect newUrl:", newUrl);
@@ -1185,11 +1190,11 @@ useEffect(() => {
       try {
         // Clear current messages first
         setMessages([]);
-        setError(null);
+     
         setStatus('idle');
         
-        // Load the selected chat's messages using chat actions
-        const { getChatAction } = await import('@/lib/chat-actions');
+        // Load the selected chat's messages
+        setIsLoading(true);
         const response = await getChatAction(selectedChatId);
         console.log("handleChatSelect response:", response);
         
@@ -1223,7 +1228,7 @@ useEffect(() => {
     const initializeUser = async () => {
       try {
         // Initialize static user
-        const { AuthClient } = await import('../../../../lib/auth-client');
+        const { AuthClient } = await import('@/lib/auth-client');
         const initResponse = await AuthClient.initializeStaticUser();
         console.log("initResponse:", initResponse)
         if (initResponse) {
@@ -1251,8 +1256,7 @@ useEffect(() => {
           return;
         }
         
-        // Use chat actions instead of direct fetch
-        const { getChatAction } = await import('@/lib/chat-actions');
+        // Use the API service instead of direct fetch
         const response = await getChatAction(chatId);
         console.log('Raw API response:', response);
         
@@ -1278,7 +1282,7 @@ useEffect(() => {
         // Load user profile with memory context (non-blocking)
         if (isUserInitialized) {
             // Load user profile in background without blocking the chat loading
-          const { AuthClient } = await import('../../../../lib/auth-client');
+          const { AuthClient } = await import('@/lib/auth-client');
           AuthClient.getUserWithMemory(userId || '')
             .then((userResponse: any) => {
               console.log("userResponse:", userResponse);
@@ -1378,18 +1382,18 @@ useEffect(() => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 flex flex-col">
-        <div className="max-w-5xl mx-auto flex-1 flex flex-col w-full items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading conversation...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <div className="min-h-screen bg-gray-900 p-4 flex flex-col">
+  //       <div className="max-w-5xl mx-auto flex-1 flex flex-col w-full items-center justify-center">
+  //         <div className="text-center">
+  //           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+  //           <p className="text-gray-100">Loading conversation...</p>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
   console.log("messagesaaaaaaaaaaa:", messages);
 
   return (
@@ -1397,17 +1401,18 @@ useEffect(() => {
              {/* Sidebar - Always rendered, but shown differently based on screen size */}
         <SubscriptionProvider userId={userId || ''}>
           <ChatProvider>
-            <Sidebar
-            setChatId={setChatId}
-             isOpen={sidebarOpen}
-             onToggle={toggleSidebar}
-             isUserInitialized={isUserInitialized}
-             currentChatId={chatId as string}
-             onChatSelect={handleChatSelect}
-             onModelChange={handleModelChange}
-             currentModel={model}
-           />
-          </ChatProvider>
+          <Sidebar
+          setChatId={setChatId}
+           isOpen={sidebarOpen}
+           onToggle={toggleSidebar}
+           isUserInitialized={isUserInitialized}
+           currentChatId={chatId as string}
+           onChatSelect={handleChatSelect}
+           onModelChange={handleModelChange}
+           currentModel={model}
+           
+         />
+         </ChatProvider>
         </SubscriptionProvider>
 
       {/* Main content */}
@@ -1440,7 +1445,7 @@ useEffect(() => {
         <div className="flex-1 overflow-hidden flex flex-col bg-gray-900/90">
           <div className="flex-1 flex flex-col w-full min-h-0">
             {/* Welcome Header */}
-            {!messages.length && (
+            {!messages.length &&!isLoading && (
               <div className={`text-center mb-8 px-4 ${!messages.length && 'mt-45'}`}>
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-gray-600 bg-clip-text text-transparent mb-2">
                   AI Chat Assistant
@@ -1463,6 +1468,20 @@ useEffect(() => {
                 )}
               </div>
             )}
+
+
+               {
+                isLoading && (
+                  <div className="min-h-screen bg-gray-700/80 p-4 flex flex-col">
+                    <div className="max-w-5xl mx-auto flex-1 flex flex-col w-full items-center justify-center">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-32 w-32 border-b-4 border-blue-500 mx-auto mb-4"></div>
+                        <p className="text-gray-100">Loading conversation...</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
 
         {/* Dynamic Title Box - Sticky header that stays visible when scrolling */}
         {messages.length > 0 && status === 'ready' && (
@@ -1538,6 +1557,7 @@ useEffect(() => {
             className="bg-gray-700/80 px-6 px-4 sm:px-6 md:px-12 lg:px-20 xl:px-30 2xl:px-40  backdrop-blur-sm flex-1 overflow-y-auto min-h-0 overflow-x-hidden chat-scrollbar"
             ref={chatContainerRef}
           >
+
           {error ? (
             // Enhanced Error Display - Combined comprehensive error handling
             <div className="text-center py-16">
@@ -1652,6 +1672,7 @@ useEffect(() => {
                   </p>
                 </div>
               )}
+           
               
               {(error as any).suggestions && (error as any).suggestions.length > 0 && (
                 <div className="max-w-2xl mx-auto mb-6">
@@ -2068,21 +2089,19 @@ useEffect(() => {
         {/* Input Form - Always fixed at bottom */}
         
         <SubscriptionProvider userId={userId || ''}>
-          <ChatProvider>
-            <ChatInput
-              input={input}
-              setInput={setInput}
-              files={files}
-              setUploadedFiles={setUploadedFiles}
-              sendMessage={sendMessageWithUser}
-              status={status}
-              onStop={stop}
-              chatId={chatId as string}
-              messages={messages}
-              setModel={setModel}
-              model={model}
-            />
-          </ChatProvider>
+          <ChatInput
+            input={input}
+            setInput={setInput}
+            files={files}
+            setUploadedFiles={setUploadedFiles}
+            sendMessage={sendMessageWithUser}
+            status={status}
+            onStop={stop}
+            chatId={chatId as string}
+            messages={messages}
+            setModel={setModel}
+            model={model}
+          />
         </SubscriptionProvider>
         </div>
 

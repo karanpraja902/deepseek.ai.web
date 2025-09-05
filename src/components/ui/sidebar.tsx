@@ -73,7 +73,7 @@ export default function Sidebar({
     const loadRecentChats = async () => {
       try {
         setIsLoadingChats(true);
-        const { getUserChatsAction } = await import('@/lib/chat-actions');
+        
         const response = await getUserChatsAction();
         if (response.success) {
           setRecentChats(response.data?.chats || []);
