@@ -137,7 +137,7 @@ const SettingsPageContent = () => {
   const handleBackToChat = () => {
     // Try to go back to the previous page, or fallback to home
     if (window.history.length > 1) {
-      router.push(`/`);
+      window.history.back();
     }
   };
 
@@ -340,23 +340,23 @@ const SettingsPageContent = () => {
     { icon: <Bell className="w-4 h-4" />, label: "Contact Us", section: "contact", active: activeSection === "contact" }
   ];
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-gray-700 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600 dark:text-gray-400">Loading your profile...</p>
-        </div>
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="min-h-screen bg-white dark:bg-gray-700 flex items-center justify-center">
+  //       <div className="text-center">
+  //         <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+  //         <p className="text-gray-600 dark:text-gray-400">Loading your profile...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-700 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-700/80 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-500 mb-4">⚠️</div>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+          <div className="text-red-400 mb-4">⚠️</div>
+          <p className="text-gray-100 mb-4">{error}</p>
           <button 
             onClick={() => window.location.reload()} 
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
@@ -369,12 +369,12 @@ const SettingsPageContent = () => {
   }
 
   return (
-      <div className="bg-gray-900">
+      <div className="bg-gray-800/90">
       {/* Header with back button - no sidebar */}
-      <header className="sticky top-0 bg-gray-800/95 z-10 flex h-16 shrink-0 items-center gap-4 border-b border-gray-900 dark:border-gray-700 px-4 md:px-6  dark:bg-gray-800">
+      <header className="sticky top-0 bg-gray-800/95 z-10 flex h-16 shrink-0 items-center gap-4 border-b border-gray-600 px-4 md:px-6">
         <button
           onClick={handleBackToChat}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-100 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-100 hover:text-gray-200 hover:bg-gray-600 rounded-lg transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="hidden sm:inline">Back to Chat</span>
@@ -383,13 +383,13 @@ const SettingsPageContent = () => {
       </header>
 
       {/* Main Content - Full Width with Responsive Layout */}
-      <div className="flex-1 overflow-auto bg-900/95">
-        <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 bg-gray-900/95">
+      {user && <div className="flex-1 overflow-auto bg-gray-800/90">
+        <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
             
             {/* Left Sidebar Menu - Responsive */}
             <div className="lg:w-64 lg:flex-shrink-0">
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 lg:p-6 border border-gray-200 dark:border-gray-700">
+              <div className="bg-gray-900/90 rounded-xl p-4 lg:p-6 border border-gray-600">
                 <div className="mb-6">
                   {/* User Profile Section */}
                   <div className="flex items-center gap-3 mb-4">
@@ -401,22 +401,22 @@ const SettingsPageContent = () => {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">{user?.name || 'User'}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{getCurrentPlan()}</p>
+                      <p className="font-semibold text-sm truncate text-gray-100">{user?.name || 'User'}</p>
+                      <p className="text-xs text-gray-300 truncate">{getCurrentPlan()}</p>
                     </div>
                   </div>
 
                   {/* User Details */}
                   <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2 text-xs text-gray-300">
                       <Mail className="w-3 h-3" />
                       <span className="truncate">{user?.email || 'No email'}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2 text-xs text-gray-300">
                       <Calendar className="w-3 h-3" />
                       <span>Member since Unknown</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2 text-xs text-gray-300">
                       <Clock className="w-3 h-3" />
                       <span>Last active Unknown</span>
                     </div>
@@ -426,13 +426,13 @@ const SettingsPageContent = () => {
                   {subscriptionStatus && (
                     <div className={`rounded-lg p-3 mb-4 border ${
                       getCurrentPlanStatus() === 'trial' 
-                        ? 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800' 
-                        : 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
+                        ? 'bg-blue-900/50 border-blue-400' 
+                        : 'bg-green-900/50 border-green-400'
                     }`}>
                       <p className={`text-xs font-medium ${
                         getCurrentPlanStatus() === 'trial' 
-                          ? 'text-blue-800 dark:text-blue-200' 
-                          : 'text-green-800 dark:text-green-200'
+                          ? 'text-blue-200' 
+                          : 'text-green-200'
                       }`}>
                         {getCurrentPlanStatus() === 'trial' 
                           ? `Trial ends in ${getDaysLeft()} days`
@@ -450,8 +450,8 @@ const SettingsPageContent = () => {
                       onClick={() => setActiveSection(item.section)}
                       className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                         item.active 
-                          ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100' 
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                          ? 'bg-gray-600 text-gray-100' 
+                          : 'text-gray-300 hover:bg-gray-700'
                       }`}
                     >
                       {item.icon}
@@ -469,44 +469,44 @@ const SettingsPageContent = () => {
                 {activeSection === 'overview' && (
                   <>
                     {/* User Profile Overview */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                      <h2 className="text-xl font-semibold mb-4">Profile Overview</h2>
+                    <div className="bg-gray-900/90 rounded-xl border border-gray-600 p-6">
+                      <h2 className="text-xl font-semibold mb-4 text-gray-100">Profile Overview</h2>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Personal Information</h3>
+                          <h3 className="font-medium text-gray-100 mb-3">Personal Information</h3>
                           <div className="space-y-3">
                             <div>
-                              <label className="text-sm text-gray-500 dark:text-gray-400">Full Name</label>
-                              <p className="text-gray-900 dark:text-gray-100">{user?.name || 'Not set'}</p>
+                              <label className="text-sm text-gray-300">Full Name</label>
+                              <p className="text-gray-100">{user?.name || 'Not set'}</p>
                             </div>
                             <div>
-                              <label className="text-sm text-gray-500 dark:text-gray-400">Email</label>
-                              <p className="text-gray-900 dark:text-gray-100">{user?.email || 'Not set'}</p>
+                              <label className="text-sm text-gray-300">Email</label>
+                              <p className="text-gray-100">{user?.email || 'Not set'}</p>
                             </div>
                             <div>
-                              <label className="text-sm text-gray-500 dark:text-gray-400">Username</label>
-                              <p className="text-gray-900 dark:text-gray-100">{user?.username || 'Not set'}</p>
+                              <label className="text-sm text-gray-300">Username</label>
+                              <p className="text-gray-100">{user?.username || 'Not set'}</p>
                             </div>
                           </div>
                         </div>
                         <div>
-                          <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Preferences</h3>
+                          <h3 className="font-medium text-gray-100 mb-3">Preferences</h3>
                           <div className="space-y-3">
                             <div>
-                              <label className="text-sm text-gray-500 dark:text-gray-400">Theme</label>
-                              <p className="text-gray-900 dark:text-gray-100 capitalize">{user?.preferences?.theme || 'Not set'}</p>
+                              <label className="text-sm text-gray-300">Theme</label>
+                              <p className="text-gray-100 capitalize">{user?.preferences?.theme || 'Not set'}</p>
                             </div>
                             <div>
-                              <label className="text-sm text-gray-500 dark:text-gray-400">Language</label>
-                              <p className="text-gray-900 dark:text-gray-100">{user?.preferences?.language || 'Not set'}</p>
+                              <label className="text-sm text-gray-300">Language</label>
+                              <p className="text-gray-100">{user?.preferences?.language || 'Not set'}</p>
                             </div>
                             <div>
-                              <label className="text-sm text-gray-500 dark:text-gray-400">AI Model</label>
-                              <p className="text-gray-900 dark:text-gray-100">{user?.preferences?.aiModel || 'Not set'}</p>
+                              <label className="text-sm text-gray-300">AI Model</label>
+                              <p className="text-gray-100">{user?.preferences?.aiModel || 'Not set'}</p>
                             </div>
                             <div>
-                              <label className="text-sm text-gray-500 dark:text-gray-400">Conversation Style</label>
-                              <p className="text-gray-900 dark:text-gray-100 capitalize">{user?.preferences?.conversationStyle || 'Not set'}</p>
+                              <label className="text-sm text-gray-300">Conversation Style</label>
+                              <p className="text-gray-100 capitalize">{user?.preferences?.conversationStyle || 'Not set'}</p>
                             </div>
                           </div>
                         </div>
@@ -514,33 +514,33 @@ const SettingsPageContent = () => {
                       
                       {/* Subscription Information */}
                       {subscriptionStatus && (
-                        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                          <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Subscription Information</h3>
+                        <div className="mt-6 pt-6 border-t border-gray-600">
+                          <h3 className="font-medium text-gray-100 mb-3">Subscription Information</h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                               <div className="space-y-3">
                                 <div>
-                                  <label className="text-sm text-gray-500 dark:text-gray-400">Current Plan</label>
-                                  <p className="text-gray-900 dark:text-gray-100 font-medium">{subscriptionStatus.plan}</p>
+                                  <label className="text-sm text-gray-300">Current Plan</label>
+                                  <p className="text-gray-100 font-medium">{subscriptionStatus.plan}</p>
                                 </div>
                                 <div>
-                                  <label className="text-sm text-gray-500 dark:text-gray-400">Status</label>
-                                  <p className="text-gray-900 dark:text-gray-100 capitalize">{subscriptionStatus.status}</p>
+                                  <label className="text-sm text-gray-300">Status</label>
+                                  <p className="text-gray-100 capitalize">{subscriptionStatus.status}</p>
                                 </div>
                               </div>
                             </div>
                             <div>
                               <div className="space-y-3">
                                 <div>
-                                  <label className="text-sm text-gray-500 dark:text-gray-400">Subscribed On</label>
-                                  <p className="text-gray-900 dark:text-gray-100">
+                                  <label className="text-sm text-gray-300">Subscribed On</label>
+                                  <p className="text-gray-100">
                                     {subscriptionStatus.subscribedAt ? new Date(subscriptionStatus.subscribedAt).toLocaleDateString() : 'Not available'}
                                   </p>
                                 </div>
                                 {subscriptionStatus.trialEnd && (
                                   <div>
-                                    <label className="text-sm text-gray-500 dark:text-gray-400">Trial Ends</label>
-                                    <p className="text-gray-900 dark:text-gray-100">
+                                    <label className="text-sm text-gray-300">Trial Ends</label>
+                                    <p className="text-gray-100">
                                       {new Date(subscriptionStatus.trialEnd).toLocaleDateString()}
                                     </p>
                                   </div>
@@ -553,12 +553,12 @@ const SettingsPageContent = () => {
                     </div>
 
                     {/* Team Invitation Section */}
-                    <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 md:p-6 border border-gray-200 dark:border-gray-700">
-                      <h3 className="text-lg font-semibold mb-2">Invite Team Members</h3>
-                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                    <div className="bg-gray-900/90 rounded-xl p-4 md:p-6 border border-gray-600">
+                      <h3 className="text-lg font-semibold mb-2 text-gray-100">Invite Team Members</h3>
+                      <p className="text-gray-300 text-sm mb-4">
                         Accelerate your team with admin controls, analytics, and enterprise-grade security.
                       </p>
-                      <button className="bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                      <button className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-medium transition-colors">
                         Invite Your Team
                       </button>
                     </div>
@@ -567,9 +567,9 @@ const SettingsPageContent = () => {
 
                 {/* Subscriptions Section */}
                 {activeSection === 'subscriptions' && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                  <div className="bg-gray-900/90 rounded-xl border border-gray-600 p-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-semibold">Subscriptions</h2>
+                      <h2 className="text-xl font-semibold text-gray-100">Subscriptions</h2>
                       <button
                         onClick={async () => {
                           await refreshUser();
@@ -586,13 +586,13 @@ const SettingsPageContent = () => {
                     
                     {/* Current Plan Summary */}
                     {subscriptionStatus && (
-                      <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="mb-6 p-4 bg-gradient-to-r from-blue-900/50 to-purple-900/50 border border-blue-400 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                            <h3 className="font-semibold text-lg text-gray-100">
                               Current Plan: {subscriptionStatus.plan}
                             </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            <p className="text-sm text-gray-300 mt-1">
                               Status: <span className="capitalize font-medium">{subscriptionStatus.status}</span>
                               {getDaysLeft() > 0 && (
                                 <span className="ml-2">
@@ -602,16 +602,16 @@ const SettingsPageContent = () => {
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                            <p className="text-sm text-gray-300">
                               Subscribed on {subscriptionStatus.subscribedAt ? new Date(subscriptionStatus.subscribedAt).toLocaleDateString() : 'Unknown'}
                             </p>
                             {subscriptionStatus.trialEnd && (
-                              <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                              <p className="text-sm text-blue-300 font-medium">
                                 Trial ends: {new Date(subscriptionStatus.trialEnd).toLocaleDateString()}
                               </p>
                             )}
                             {subscriptionStatus.currentPeriodEnd && (
-                              <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                              <p className="text-sm text-green-300 font-medium">
                                 Renews: {new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}
                               </p>
                             )}
@@ -626,20 +626,20 @@ const SettingsPageContent = () => {
                       key={index}
                       className={`relative rounded-xl border p-4 md:p-6 ${
                         plan.current 
-                          ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950' 
+                          ? 'border-blue-400 bg-blue-900/50' 
                           : plan.disabled
-                          ? 'border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-800 opacity-75'
-                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+                          ? 'border-gray-500 bg-gray-800/50 opacity-75'
+                          : 'border-gray-600 bg-gray-900/90'
                       }`}
                     >
                       {/* Disabled Plan Overlay */}
                       {plan.disabled && (
-                        <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 bg-opacity-50 dark:bg-opacity-50 rounded-xl flex items-center justify-center">
+                        <div className="absolute inset-0 bg-gray-700 bg-opacity-50 rounded-xl flex items-center justify-center">
                           <div className="text-center">
-                            <div className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">
+                            <div className="text-gray-300 text-sm font-medium mb-1">
                               Plan Unavailable
                             </div>
-                            <div className="text-gray-400 dark:text-gray-500 text-xs">
+                            <div className="text-gray-400 text-xs">
                               You have a higher-tier plan
                             </div>
                           </div>
@@ -648,25 +648,25 @@ const SettingsPageContent = () => {
                       
                       <div className="flex items-center gap-2 mb-4">
                         {plan.icon}
-                        <h3 className="text-lg font-semibold">{plan.name}</h3>
+                        <h3 className="text-lg font-semibold text-gray-100">{plan.name}</h3>
                         {plan.daysLeft && plan.daysLeft > 0 && (
-                          <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                          <span className="text-sm text-blue-300 font-medium">
                             {plan.daysLeft} Days Left
                           </span>
                         )}
                       </div>
 
-                          <p className="text-2xl font-bold mb-2">{plan.price}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{plan.description}</p>
+                          <p className="text-2xl font-bold mb-2 text-gray-100">{plan.price}</p>
+                          <p className="text-sm text-gray-300 mb-4">{plan.description}</p>
                           
                           {plan.note && (
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{plan.note}</p>
+                            <p className="text-sm text-gray-400 mb-4">{plan.note}</p>
                           )}
 
                           <ul className="space-y-2 mb-6">
                             {plan.features.map((feature, featureIndex) => (
-                              <li key={featureIndex} className="flex items-center gap-2 text-sm">
-                                <Check className="w-4 h-4 text-green-500" />
+                              <li key={featureIndex} className="flex items-center gap-2 text-sm text-gray-100">
+                                <Check className="w-4 h-4 text-green-400" />
                                 {feature}
                               </li>
                             ))}
@@ -696,16 +696,16 @@ const SettingsPageContent = () => {
 
                 {/* Integrations Section */}
                 {activeSection === 'integrations' && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                    <h2 className="text-xl font-semibold mb-4">Integrations</h2>
+                  <div className="bg-gray-900/90 rounded-xl border border-gray-600 p-6">
+                    <h2 className="text-xl font-semibold mb-4 text-gray-100">Integrations</h2>
                     <div className="space-y-4">
                       {integrations.map((integration, index) => (
-                        <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                        <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border border-gray-600 rounded-lg bg-gray-700/50">
                           <div className="flex items-center gap-3 min-w-0">
                             <span className="text-2xl flex-shrink-0">{integration.icon}</span>
                             <div className="min-w-0">
-                              <h4 className="font-medium">{integration.name}</h4>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">{integration.description}</p>
+                              <h4 className="font-medium text-gray-100">{integration.name}</h4>
+                              <p className="text-sm text-gray-300">{integration.description}</p>
                             </div>
                           </div>
                           <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0 w-full sm:w-auto">
@@ -719,16 +719,16 @@ const SettingsPageContent = () => {
 
                 {/* Other sections can be added here */}
                 {activeSection !== 'overview' && activeSection !== 'subscriptions' && activeSection !== 'integrations' && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                    <h2 className="text-xl font-semibold mb-4">{settingsMenuItems.find(item => item.section === activeSection)?.label || 'Section'}</h2>
-                    <p className="text-gray-600 dark:text-gray-400">This section is coming soon.</p>
+                  <div className="bg-gray-900/90 rounded-xl border border-gray-600 p-6">
+                    <h2 className="text-xl font-semibold mb-4 text-gray-100">{settingsMenuItems.find(item => item.section === activeSection)?.label || 'Section'}</h2>
+                    <p className="text-gray-300">This section is coming soon.</p>
                   </div>
                 )}
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </div>}
     </div>
   );
 };

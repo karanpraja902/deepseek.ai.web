@@ -21,12 +21,13 @@ export const uploadFilesClient = async (files: File[]): Promise<UploadedClientFi
     const uploadPromises = files.map(async (file) => {
       const formData = new FormData();
       formData.append('file', file);
-      
+      console.log("uploading file to cloudinary", file);
       const response = await fetch(`${API_BASE_URL}/api/cloudinary/upload`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
       });
+      console.log("cloudinary response", response);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

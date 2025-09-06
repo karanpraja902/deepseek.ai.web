@@ -260,6 +260,7 @@ export default function ChatInput({
   }, [setUploadedFiles]);
 
   const handleDocumentChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setError('')
     console.log("handleDocumentChange")
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
@@ -300,11 +301,14 @@ export default function ChatInput({
         } else if (error.status) {
           errorMessage = `HTTP ${error.status}: ${error.statusText || 'Request failed'}`;
         }
+        setDocumentMode(false)
         setError(errorMessage);
         setShowErrorToast(true);
+        setPreFile([])
         setTimeout(() => setShowErrorToast(false), 8000);
       } finally {
-        setIsProcessingPdf(false); // End PDF processing state
+        setIsProcessingPdf(false);
+         // End PDF processing state
       }
     }
   }, [setUploadedFiles]);

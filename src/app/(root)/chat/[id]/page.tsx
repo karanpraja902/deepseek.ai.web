@@ -1595,13 +1595,13 @@ useEffect(() => {
               
               <div className="flex items-center justify-center gap-2 mb-4">
                 <h3 className={`text-xl font-semibold ${
-                  (error as any).errorType === 'rate_limit_error' ? 'text-yellow-800' :
-                  (error as any).errorType === 'api_key_error' ? 'text-orange-800' :
-                  (error as any).errorType === 'model_not_found_error' ? 'text-purple-800' :
-                  (error as any).errorType === 'empty_response_error' ? 'text-teal-800' :
-                  (error as any).errorType === 'request_error' ? 'text-blue-800' :
-                  (error as any).errorType === 'server_error' ? 'text-gray-800' :
-                  'text-red-800'
+                  (error as any).errorType === 'rate_limit_error' ? 'text-gray-100' :
+                  (error as any).errorType === 'api_key_error' ? 'text-gray-100' :
+                  (error as any).errorType === 'model_not_found_error' ? 'text-gray-100' :
+                  (error as any).errorType === 'empty_response_error' ? 'text-gray-100' :
+                  (error as any).errorType === 'request_error' ? 'text-gray-100' :
+                  (error as any).errorType === 'server_error' ? 'text-gray-100' :
+                  'text-gray-100'
                 }`}>
                   {(error as any).errorType === 'rate_limit_error' ? '⚡ Rate Limit Exceeded' :
                    (error as any).errorType === 'api_key_error' ? '🔑 API Key Issue' :
@@ -1613,13 +1613,13 @@ useEffect(() => {
                 </h3>
                 {(error as any).status && (
                   <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                    (error as any).errorType === 'rate_limit_error' ? 'bg-yellow-200 text-yellow-800' :
-                    (error as any).errorType === 'api_key_error' ? 'bg-orange-200 text-orange-800' :
-                    (error as any).errorType === 'model_not_found_error' ? 'bg-purple-200 text-purple-800' :
-                    (error as any).errorType === 'empty_response_error' ? 'bg-teal-200 text-teal-800' :
-                    (error as any).errorType === 'request_error' ? 'bg-blue-200 text-blue-800' :
-                    (error as any).errorType === 'server_error' ? 'bg-gray-200 text-gray-800' :
-                    'bg-red-200 text-red-800'
+                    (error as any).errorType === 'rate_limit_error' ? 'bg-gray-600 text-white' :
+                    (error as any).errorType === 'api_key_error' ? 'bg-gray-600 text-white' :
+                    (error as any).errorType === 'model_not_found_error' ? 'bg-gray-600 text-white' :
+                    (error as any).errorType === 'empty_response_error' ? 'bg-gray-600 text-white' :
+                    (error as any).errorType === 'request_error' ? 'bg-gray-600 text-white' :
+                    (error as any).errorType === 'server_error' ? 'bg-gray-600 text-white' :
+                    'bg-gray-600 text-white'
                   }`}>
                     HTTP {(error as any).status}
                   </span>
@@ -1627,46 +1627,46 @@ useEffect(() => {
               </div>
               
               <p className={`text-lg mb-4 max-w-2xl mx-auto ${
-                (error as any).errorType === 'rate_limit_error' ? 'text-yellow-700' :
-                (error as any).errorType === 'api_key_error' ? 'text-orange-700' :
-                (error as any).errorType === 'model_not_found_error' ? 'text-purple-700' :
-                (error as any).errorType === 'empty_response_error' ? 'text-teal-700' :
-                (error as any).errorType === 'request_error' ? 'text-blue-700' :
-                (error as any).errorType === 'server_error' ? 'text-gray-700' :
-                'text-red-700'
+                (error as any).errorType === 'rate_limit_error' ? 'text-gray-100' :
+                (error as any).errorType === 'api_key_error' ? 'text-gray-100' :
+                (error as any).errorType === 'model_not_found_error' ? 'text-gray-100' :
+                (error as any).errorType === 'empty_response_error' ? 'text-gray-100' :
+                (error as any).errorType === 'request_error' ? 'text-gray-100' :
+                (error as any).errorType === 'server_error' ? 'text-gray-100' :
+                'text-gray-100'
               }`}>
                 {error.message || 'An error occurred while processing your request.'}
               </p>
               
               {(error as any).details && (
                 <div className={`max-w-2xl mx-auto mb-6 p-4 rounded-lg border ${
-                  (error as any).errorType === 'rate_limit_error' ? 'bg-yellow-50 border-yellow-200' :
-                  (error as any).errorType === 'api_key_error' ? 'bg-orange-50 border-orange-200' :
-                  (error as any).errorType === 'model_not_found_error' ? 'bg-purple-50 border-purple-200' :
-                  (error as any).errorType === 'empty_response_error' ? 'bg-teal-50 border-teal-200' :
-                  (error as any).errorType === 'request_error' ? 'bg-blue-50 border-blue-200' :
-                  (error as any).errorType === 'server_error' ? 'bg-gray-50 border-gray-200' :
-                  'bg-red-50 border-red-200'
+                  (error as any).errorType === 'rate_limit_error' ? 'bg-gray-800 border-gray-600' :
+                  (error as any).errorType === 'api_key_error' ? 'bg-gray-800 border-gray-600' :
+                  (error as any).errorType === 'model_not_found_error' ? 'bg-gray-800 border-gray-600' :
+                  (error as any).errorType === 'empty_response_error' ? 'bg-gray-800 border-gray-600' :
+                  (error as any).errorType === 'request_error' ? 'bg-gray-800 border-gray-600' :
+                  (error as any).errorType === 'server_error' ? 'bg-gray-800 border-gray-600' :
+                  'bg-gray-800 border-gray-600'
                 }`}>
                   <p className={`text-sm font-medium mb-2 ${
-                    (error as any).errorType === 'rate_limit_error' ? 'text-yellow-800' :
-                    (error as any).errorType === 'api_key_error' ? 'text-orange-800' :
-                    (error as any).errorType === 'model_not_found_error' ? 'text-purple-800' :
-                    (error as any).errorType === 'empty_response_error' ? 'text-teal-800' :
-                    (error as any).errorType === 'request_error' ? 'text-blue-800' :
-                    (error as any).errorType === 'server_error' ? 'text-gray-800' :
-                    'text-red-800'
+                    (error as any).errorType === 'rate_limit_error' ? 'text-gray-100' :
+                    (error as any).errorType === 'api_key_error' ? 'text-gray-100' :
+                    (error as any).errorType === 'model_not_found_error' ? 'text-gray-100' :
+                    (error as any).errorType === 'empty_response_error' ? 'text-gray-100' :
+                    (error as any).errorType === 'request_error' ? 'text-gray-100' :
+                    (error as any).errorType === 'server_error' ? 'text-gray-100' :
+                    'text-gray-100'
                   }`}>
                     📋 Technical Details:
                   </p>
                   <p className={`text-sm break-words ${
-                    (error as any).errorType === 'rate_limit_error' ? 'text-yellow-700' :
-                    (error as any).errorType === 'api_key_error' ? 'text-orange-700' :
-                    (error as any).errorType === 'model_not_found_error' ? 'text-purple-700' :
-                    (error as any).errorType === 'empty_response_error' ? 'text-teal-700' :
-                    (error as any).errorType === 'request_error' ? 'text-blue-700' :
-                    (error as any).errorType === 'server_error' ? 'text-gray-700' :
-                    'text-red-700'
+                    (error as any).errorType === 'rate_limit_error' ? 'text-gray-300' :
+                    (error as any).errorType === 'api_key_error' ? 'text-gray-300' :
+                    (error as any).errorType === 'model_not_found_error' ? 'text-gray-300' :
+                    (error as any).errorType === 'empty_response_error' ? 'text-gray-300' :
+                    (error as any).errorType === 'request_error' ? 'text-gray-300' :
+                    (error as any).errorType === 'server_error' ? 'text-gray-300' :
+                    'text-gray-300'
                   }`}>
                     {(error as any).details}
                   </p>
@@ -1677,24 +1677,24 @@ useEffect(() => {
               {(error as any).suggestions && (error as any).suggestions.length > 0 && (
                 <div className="max-w-2xl mx-auto mb-6">
                   <p className={`text-sm font-medium mb-3 ${
-                    (error as any).errorType === 'rate_limit_error' ? 'text-yellow-800' :
-                    (error as any).errorType === 'api_key_error' ? 'text-orange-800' :
-                    (error as any).errorType === 'model_not_found_error' ? 'text-purple-800' :
-                    (error as any).errorType === 'empty_response_error' ? 'text-teal-800' :
-                    (error as any).errorType === 'request_error' ? 'text-blue-800' :
-                    (error as any).errorType === 'server_error' ? 'text-gray-800' :
-                    'text-red-800'
+                    (error as any).errorType === 'rate_limit_error' ? 'text-gray-100' :
+                    (error as any).errorType === 'api_key_error' ? 'text-gray-100' :
+                    (error as any).errorType === 'model_not_found_error' ? 'text-gray-100' :
+                    (error as any).errorType === 'empty_response_error' ? 'text-gray-100' :
+                    (error as any).errorType === 'request_error' ? 'text-gray-100' :
+                    (error as any).errorType === 'server_error' ? 'text-gray-100' :
+                    'text-gray-100'
                   }`}>
                     💡 Suggestions to resolve this issue:
                   </p>
                   <ul className={`text-sm text-left space-y-2 ${
-                    (error as any).errorType === 'rate_limit_error' ? 'text-yellow-700' :
-                    (error as any).errorType === 'api_key_error' ? 'text-orange-700' :
-                    (error as any).errorType === 'model_not_found_error' ? 'text-purple-700' :
-                    (error as any).errorType === 'empty_response_error' ? 'text-teal-700' :
-                    (error as any).errorType === 'request_error' ? 'text-blue-700' :
-                    (error as any).errorType === 'server_error' ? 'text-gray-700' :
-                    'text-red-700'
+                    (error as any).errorType === 'rate_limit_error' ? 'text-gray-300' :
+                    (error as any).errorType === 'api_key_error' ? 'text-gray-300' :
+                    (error as any).errorType === 'model_not_found_error' ? 'text-gray-300' :
+                    (error as any).errorType === 'empty_response_error' ? 'text-gray-300' :
+                    (error as any).errorType === 'request_error' ? 'text-gray-300' :
+                    (error as any).errorType === 'server_error' ? 'text-gray-300' :
+                    'text-gray-300'
                   }`}>
                     {(error as any).suggestions.map((suggestion: string, index: number) => (
                       <li key={index} className="flex items-start gap-2">
@@ -1740,7 +1740,7 @@ useEffect(() => {
                       setModel('google');
                       setStatus('ready');
                     }}
-                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2"
+                    className="px-6 py-3 bg-gray-500 text-white font-medium rounded-lg hover:bg-gray-600 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2"
                   >
                     🚀 Switch to Google AI
                   </button>
@@ -1753,7 +1753,7 @@ useEffect(() => {
                       setModel('google');
                       setStatus('ready');
                     }}
-                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2"
+                    className="px-6 py-3 bg-gray-500 text-white font-medium rounded-lg hover:bg-gray-600 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2"
                   >
                     🤖 Try Google AI
                   </button>
