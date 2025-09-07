@@ -170,7 +170,7 @@ const SignInPage = () => {
             </div>
 
             <div className="text-left text-xs text-gray-400">
-              By signing up or logging in, you consent to DeepThink&apos;s{" "}
+              By signing up or logging in, you consent to DeepSeek&apos;s{" "}
               <a href="#" className="text-blue-400 underline hover:text-blue-300">
                 Terms of Use
               </a>{" "}

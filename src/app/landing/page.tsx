@@ -118,7 +118,7 @@ const LandingPage = () => {
       name: "Sarah Chen",
       role: "Product Manager",
       company: "TechCorp",
-      content: "DeepThink has revolutionized how our team researches and analyzes information. The AI agents are incredibly helpful!",
+      content: "DeepSeek has revolutionized how our team researches and analyzes information. The AI agents are incredibly helpful!",
       rating: 5
     },
     {
@@ -132,7 +132,7 @@ const LandingPage = () => {
       name: "Emily Watson",
       role: "Content Creator",
       company: "Creative Studios",
-      content: "I love how DeepThink remembers my preferences and adapts to my writing style. It's like having a personal AI assistant.",
+      content: "I love how DeepSeek remembers my preferences and adapts to my writing style. It's like having a personal AI assistant.",
       rating: 5
     }
   ];
@@ -152,7 +152,7 @@ const LandingPage = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-white">DeepThink</h1>
+                <h1 className="text-2xl font-bold text-white">DeepSeek</h1>
               </div>
             </div>
             <div className="hidden md:flex items-center space-x-8">
@@ -192,7 +192,7 @@ const LandingPage = () => {
               <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent"> AI Intelligence</span>
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8 leading-relaxed">
-              Experience the future of AI with DeepThink. Access cutting-edge models, create custom AI agents, 
+              Experience the future of AI with DeepSeek. Access cutting-edge models, create custom AI agents, 
               and unlock unlimited possibilities for productivity and creativity.
             </p>
           </div>
@@ -262,7 +262,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              How DeepThink Works
+              How DeepSeek Works
             </h2>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
               Get started in minutes with our simple three-step process
@@ -373,7 +373,7 @@ const LandingPage = () => {
               What Our Users Say
             </h2>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Join thousands of satisfied users who have transformed their workflow with DeepThink
+              Join thousands of satisfied users who have transformed their workflow with DeepSeek
             </p>
           </div>
 
@@ -409,7 +409,7 @@ const LandingPage = () => {
             Ready to Transform Your AI Experience?
           </h2>
           <p className="text-xl text-blue-100 mb-8">
-            Join thousands of users who are already leveraging the power of DeepThink AI
+            Join thousands of users who are already leveraging the power of DeepSeek AI
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -436,7 +436,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-xl font-bold text-white mb-4">DeepThink</h3>
+              <h3 className="text-xl font-bold text-white mb-4">DeepSeek</h3>
               <p className="text-gray-300">
                 Empowering users with cutting-edge AI technology for enhanced productivity and creativity.
               </p>
@@ -470,7 +470,7 @@ const LandingPage = () => {
             </div>
           </div>
           <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 DeepThink. All rights reserved.</p>
+            <p>&copy; 2024 DeepSeek. All rights reserved.</p>
           </div>
         </div>
       </footer>
