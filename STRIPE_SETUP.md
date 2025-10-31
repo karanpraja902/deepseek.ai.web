@@ -13,7 +13,7 @@ This guide will help you set up Stripe payment integration for the subscription 
 ```env
 # Stripe Configuration
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here
-NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=https://deepseek-ai-server.vercel.app
 ```
 
 ### Server (.env):

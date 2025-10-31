@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
 
 export interface ImageGenerationRequest {
   prompt: string;
@@ -102,7 +103,7 @@ export interface AvailableModelsResponse {
 export class AiApiService {
   static async getAvailableModels(): Promise<AvailableModelsResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ai/models`, {
+      const response = await fetch(`${API_BASE_URL}/api/ai/models`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +129,7 @@ export class AiApiService {
 
   static async generateImage(params: ImageGenerationRequest): Promise<ImageGenerationResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ai/generate-image`, {
+      const response = await fetch(`${API_BASE_URL}/api/ai/generate-image`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,14 +157,14 @@ export class AiApiService {
   static async webSearchWithAI(params: WebSearchWithAIRequest): Promise<WebSearchWithAIResponse> {
     try {
       console.log("webSearchWithAI params:", params);
-      const response = await fetch(`${API_BASE_URL}/ai/web-search`, {
+      const response = await fetch(`${API_BASE_URL}/api/ai/web-search`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(params),
       });
-
+      console.log("webSearchWithAI response:", response);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
@@ -184,7 +185,7 @@ export class AiApiService {
   static async analyzeDocument(params: DocumentAnalysisRequest): Promise<DocumentAnalysisResponse> {
     try {
       console.log("analyzeDocument params:", params);
-      const response = await fetch(`${API_BASE_URL}/pdf/analyze`, {
+      const response = await fetch(`${API_BASE_URL}/api/pdf/analyze`, {
         method: 'POST', 
         headers: {
           'Content-Type': 'application/json',
@@ -212,7 +213,7 @@ export class AiApiService {
   static async getWeather(params: WeatherRequest): Promise<WeatherResponse> {
     try {
       console.log("getWeather params:", params);
-      const response = await fetch(`${API_BASE_URL}/weather/with-ai`, {
+      const response = await fetch(`${API_BASE_URL}/api/weather/with-ai`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,13 +1,14 @@
 "use client";
-import { Button } from "@/components/ui/button";
+
+import { Button } from "../../components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { AuthApiService } from "@/services/api/auth";
+} from "../../components/ui/card";
+import { Input } from "../../components/ui/input";
+import { AuthApiService } from "../../services/api/auth";
 import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -59,13 +60,17 @@ const SignInPage = () => {
     setIsLoading(true);
     
     try {
-      const response = await AuthApiService.login(email, password);
-      
-      if (response.success) {
-        toast.success(response.message || "Login successful!");
-        router.push('/');
+      const response = await fetch(`/api/auth/login`, {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await response.json();
+      console.log("login response", response);
+      if (data.success) {
+        toast.success(data.message || "Login successful!");
+        window.location.href = '/chat/new';
       } else {
-        toast.error(response.error || "Login failed");
+        toast.error(data.error || "Login failed");
       }
     } catch (error: unknown) {
       console.error(error);

@@ -104,7 +104,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
 **Client (.env.local):**
 ```env
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_actual_publishable_key
-NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=https://deepseek-ai-server.vercel.app
 ```
 
 **Server (.env):**

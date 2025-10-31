@@ -270,19 +270,21 @@ export default function ChatInput({
       setIsProcessingPdf(true); // Start PDF processing state
 
       try {
+        console.log("uploading file to cloudinary", file);
         // First, upload the PDF to Cloudinary
         const upload = await uploadFilesClient([file]);
+        console.log("upload:", upload);
         if (upload && upload.length > 0) {
           const uploadedFile = upload[0];
-          
+          console.log("uploadedFile:", uploadedFile);
           // Now, send the URL to the new server-side analysis endpoint
-          try {
-            const analysis = await PdfApiService.analyzePDF(uploadedFile.url, uploadedFile.filename);
-            uploadedFile.pdfAnalysis = analysis;
-          } catch (analysisError) {
-            console.warn("PDF analysis failed, continuing without analysis:", analysisError);
-            // Continue without analysis - the AI can still work with the PDF URL
-          }
+          // try {
+          //   const analysis = await PdfApiService.analyzePDF(uploadedFile.url, uploadedFile.filename);
+          //   uploadedFile.pdfAnalysis = analysis;
+          // } catch (analysisError) {
+          //   console.warn("PDF analysis failed, continuing without analysis:", analysisError);
+          //   // Continue without analysis - the AI can still work with the PDF URL
+          // }
           setIsProcessingPdf(false); // End PDF processing state
           setUploadedFileMetadata([uploadedFile]);
           setUploadedFiles([uploadedFile]);
@@ -824,7 +826,7 @@ export default function ChatInput({
               disabled={status === 'streaming' || isProcessingPdf}
               placeholder={placeholderText}
       
-              className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 bg-transparent overflow-y-auto border-none outline-none text-white placeholder-white text-sm sm:text-base md:text-lg disabled:opacity-50 resize-none overflow-hidden max-h-[150px] sm:max-h-[180px] md:max-h-[200px] min-h-[36px] sm:min-h-[40px] md:min-h-[48px]"
+              className={`w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 bg-transparent overflow-y-auto border-none outline-none placeholder-white text-sm sm:text-base md:text-lg disabled:opacity-50 resize-none overflow-hidden max-h-[150px] sm:max-h-[180px] md:max-h-[200px] min-h-[36px] sm:min-h-[40px] md:min-h-[48px] ${imageGenerationMode||weatherMode||documentMode ? 'text-gray-700' : 'text-white'}`}
               rows={1}
             />
           </div>
@@ -867,7 +869,7 @@ export default function ChatInput({
                             disabled={!opt.isAvailable || isLoading || isRestricted}
                             className={`flex items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
                               !opt.isAvailable || isLoading || isRestricted
-                                ? 'opacity-100 cursor-not-allowed text-blue-300' 
+                                ? 'opacity-50 cursor-not-allowed text-blue-300 ' 
                                 : model === opt.value 
                                 ? 'bg-gray-500 text-white' 
                                 : 'hover:bg-gray-500 text-gray-100'
@@ -1009,7 +1011,7 @@ export default function ChatInput({
                                 <button 
                                   onClick={() => !isLoading ? handleToolSelect('generate-image') : null} 
                                   disabled={documentMode || webSearchEnabled || weatherMode || isLoading || isImageRestricted}
-                                  className={`flex text-gray-100 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
+                                  className={`flex text-gray-700 items-center justify-between w-full gap-2 px-3 py-2 rounded-lg transition-colors ${
                                     documentMode || webSearchEnabled || weatherMode || isLoading || isImageRestricted
                                       ? 'opacity-50 cursor-not-allowed text-gray-400'
                                       : imageGenerationMode 

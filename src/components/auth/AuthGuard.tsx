@@ -18,7 +18,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push(redirectTo);
+      // router.push(redirectTo);
     }
   }, [isAuthenticated, isLoading, router, redirectTo]);
 

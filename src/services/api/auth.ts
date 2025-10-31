@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deepseek-ai-server.vercel.app';
 
 export interface AuthUser {
   id: string;
@@ -29,7 +30,7 @@ export interface AuthResponse {
 export class AuthApiService {
   static async initializeStaticUser() {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/init`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/init`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -49,7 +50,7 @@ export class AuthApiService {
 
   static async getUserWithMemory(userId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/user?userId=${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/user?userId=${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -69,7 +70,8 @@ export class AuthApiService {
 
   static async login(email: string, password: string): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      console.log("Login request", email, password);
+      const response = await fetch(`/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,11 +86,7 @@ export class AuthApiService {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Store token in localStorage if provided
-      if (data.data?.token) {
-        localStorage.setItem('auth_token', data.data.token);
-      }
-
+      // Token is now handled via HTTP-only cookies, no localStorage needed
       return data;
     } catch (error: unknown) {
       console.error('Login error:', error);
@@ -99,7 +97,9 @@ export class AuthApiService {
 
   static async register(name: string, email: string, password: string): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      console.log("Register request", name, email, password);
+      const response = await fetch(`/api/auth/register`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,11 +114,7 @@ export class AuthApiService {
         throw new Error(data.error || 'Registration failed');
       }
 
-      // Store token in localStorage if provided
-      if (data.data?.token) {
-        localStorage.setItem('auth_token', data.data.token);
-      }
-
+      // Token is now handled via HTTP-only cookies, no localStorage needed
       return data;
     } catch (error: unknown) {
       console.error('Registration error:', error);
@@ -129,14 +125,13 @@ export class AuthApiService {
 
   static async getCurrentUser(): Promise<AuthResponse> {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
         },
-        credentials: 'include',
+        credentials: 'include', // This will include HTTP-only cookies
       });
 
       const data = await response.json();
@@ -155,7 +150,7 @@ export class AuthApiService {
 
   static async logout(): Promise<void> {
     try {
-      await fetch(`${API_BASE_URL}/auth/logout`, {
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -163,22 +158,23 @@ export class AuthApiService {
         credentials: 'include',
       });
 
-      // Clear local storage
-      localStorage.removeItem('auth_token');
+      // No need to clear localStorage since we're not using it for tokens anymore
     } catch (error) {
       console.error('Logout error:', error);
-      // Clear local storage even if request fails
-      localStorage.removeItem('auth_token');
+      // Server-side cookie clearing will handle the logout
     }
   }
 
   static initiateGoogleLogin(): void {
-    window.location.href = `${API_BASE_URL}/auth/google`;
+    console.log("Initiating Google login - redirecting to backend");
+
+    window.location.href = `${API_BASE_URL}/api/auth/google`;
   }
+
 
   static async updateUserMemory(userId: string, memory: Record<string, unknown>) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/user/${userId}/memory`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/user/${userId}/memory`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

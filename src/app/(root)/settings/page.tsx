@@ -8,7 +8,6 @@ import { StripeService } from '@/services/api/stripe';
 import { UserApiService } from '@/services/api/user';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { AuthGuard } from '@/components/auth/AuthGuard';
 
 interface UserProfile {
   id: string;
@@ -402,7 +401,6 @@ const SettingsPageContent = () => {
   }
 
   return (
-    <AuthGuard>
       <div className="bg-gray-900">
       {/* Header with back button - no sidebar */}
       <header className="sticky top-0 bg-gray-800/95 z-10 flex h-16 shrink-0 items-center gap-4 border-b border-gray-900 dark:border-gray-700 px-4 md:px-6  dark:bg-gray-800">
@@ -761,7 +759,6 @@ const SettingsPageContent = () => {
         </div>
       </div>
     </div>
-    </AuthGuard>
   );
 };
 
